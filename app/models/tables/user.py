@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Date, Numeric
+from sqlalchemy import Integer, String, Date, Numeric, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from databases.postgresql import Base
 from datetime import date
@@ -17,7 +17,7 @@ class User(Base):
         phone (str): The phone number of the user. Ex.: '0102030405'
         address (str): The address of the user Ex.: '24 rue de la République 75001 Paris'
         birth_date(date): Date of birth of the user.(YYYY-mm-dd) Ex: '1981-01-01'
-        photo (str): Path photo of the user. Ex.: /storage/bb245fea5411zsz/e5rqd2d14.png
+        avatar_url (str): Path photo of the user. Ex.: /storage/bb245fea5411zsz/e5rqd2d14.png
         credit (Numeric): The credit of the user. Ex.: 20
     """
 
@@ -32,5 +32,5 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(String(10), nullable=True)
     address: Mapped[str | None] = mapped_column(String(250), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    photo: Mapped[str | None] = mapped_column(String(254), nullable=True)
-    credit: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, server_default='20')
+    avatar_url: Mapped[str | None] = mapped_column(String(254), nullable=True)
+    credit: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, server_default=text('20'))
