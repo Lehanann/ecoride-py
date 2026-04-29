@@ -14,6 +14,8 @@ class UserBase(BaseModel):
         phone (str): The phone number of the user.
         address (str): The address of the user.
         birth_date(date): The date of birth of the user.
+        avatar_url (str): The public URL of the user's photo.
+
     Notes:
         - The username field is required, and no more than 150 characters.
         - The email field is required, must be unique and no more than 254 characters
@@ -21,6 +23,7 @@ class UserBase(BaseModel):
         - The lastname is optional and no more than 100 characters.
         - The phone number is optional, no more than 10 characters.
         - The address is optional and no more than 250 characters.
+        - The avatar_url field is optional and no more than 254 characters.
     """
     username: str = Field(..., max_length=150 , description="The username of the user.")
     email: EmailStr = Field(..., description="The email of the user.")
@@ -29,6 +32,7 @@ class UserBase(BaseModel):
     phone: str | None = Field(None, max_length=10, description="The phone number of the user.")
     address: str | None = Field(None, max_length=250, description="The address of the user.")
     birth_date: date | None = Field(None, description="The date of birth of the user.")
+    avatar_url: str | None = Field(None, max_length=254, description="The public URL of the user's photo.")
 
 class UserCreate(UserBase):
     """
@@ -37,10 +41,14 @@ class UserCreate(UserBase):
 
     Attributes:
         password (str): The password of the user.
+
     Notes:
-        - The password_hash field is required, must be at least 14 characters long and no more than 256 characters.
+        - The creating_password field is required must be at least 14 characters long and no more than 256 characters.
+        - confirm_password field is required, must be at least 14 characters long and no more than 256 characters.
     """
-    password: str = Field(...,min_length=14, max_length=256, description="The user's password (will be hashed).")
+    password: str = Field(...,min_length=14, max_length=256, description="The user's password will be created and hashed.")
+    confirm_password: str = Field(...,min_length=14, max_length=256, description="The confirm user's password will be created and hashed.")
+
 
 class UserUpdate(BaseModel):
     """
@@ -57,7 +65,8 @@ class UserUpdate(BaseModel):
         phone (str | None): New phone number.
         address (str | None): New address.
         birth_date (date | None): New date of birth.
-        password (str | None): New password (will be hashed).
+        avatar_url (str | none): New public URL of the user's photo.
+
     Notes:
         - All fields are optional.
         - Only provided fields will be updated.
@@ -69,7 +78,7 @@ class UserUpdate(BaseModel):
     phone: str | None = Field(None, max_length=10, description="The phone number of the user.")
     address: str | None = Field(None, max_length=250, description="The address of the user.")
     birth_date: date | None = Field(None, description="The date of birth of the user.")
-    password: str | None = Field(None, min_length=14, max_length=256, description="New password (will be hashed).")
+    avatar_url: str | None = Field(None,max_length=254, description="The public URL of the user's photo.")
 
 class UserRead(UserBase):
     """
@@ -80,12 +89,8 @@ class UserRead(UserBase):
         id (int): The id of the user.
         avatar_url (str): The public URL of the user's photo.
         credit (Decimal): The credit of the user.
-
     """
     id: int
-    avatar_url : str | None = Field(None, description="Public URL of the user's photo.")
     credit: Decimal = Field(...,max_digits=6, decimal_places=2, description="The credit of the user.")
 
     model_config = ConfigDict(from_attributes=True)
-
-
