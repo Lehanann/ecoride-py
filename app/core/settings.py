@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from urllib.parse import quote_plus
 
 class Settings(BaseSettings):
 
@@ -14,12 +15,11 @@ class Settings(BaseSettings):
 
     @property
     def dsn_async(self) -> str:
+        encoded_pwd = quote_plus(self.PG_PWD)
         return(
             f"postgresql+psycopg_async://"
-            f"{self.PG_USR}:{self.PG_PWD}"
+            f"{self.PG_USR}:{encoded_pwd}"
             f"@{self.PG_HOST}:{self.PG_PORT}/{self.PG_DB}"
         )
-
-    # DOCUMENT_ROOT: str = Field(default="/data")
 
 settings = Settings()
