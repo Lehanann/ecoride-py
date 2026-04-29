@@ -1,15 +1,24 @@
 from pathlib import Path
 from uuid import uuid4
-import shutil
 from fastapi import UploadFile
-from typing import BinaryIO, cast
 
 class FileService:
+    """
+
+    """
     STORAGE_DIR = Path.cwd() / 'storage/profiles'
     BUFFER_SIZE = 1024 * 1024
 
     @classmethod
     def save_profile_image(cls, file: UploadFile) -> str:
+        """
+
+        Args:
+            file:
+
+        Returns:
+
+        """
         cls.STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
         extension: str = file.filename.split('.')[-1]
@@ -22,7 +31,15 @@ class FileService:
             for chunk in iter(lambda: file.file.read(cls.BUFFER_SIZE), b''):
                 buffer.write(chunk)
 
-        local_filename = cls.STORAGE_DIR / filename
+        return f'storage/profiles/{filename}'
 
-        return local_filename.name
+    def replace_profile_image(self, file: UploadFile) -> str:
+        """
+
+        Args:
+            file:
+
+        Returns:
+
+        """
 
