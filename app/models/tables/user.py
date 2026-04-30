@@ -34,3 +34,5 @@ class User(Base):
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(254), nullable=True)
     credit: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, server_default=text('20'))
+
+    cars = relationship("Car", back_populates="user")
