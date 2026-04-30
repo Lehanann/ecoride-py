@@ -1,8 +1,11 @@
 from fastapi import FastAPI
-from app.api.v1.endpoints import (user_router)
+from app.api.v1.endpoints import (user_router,
+                                  brand_router
+                                  )
 
 app = FastAPI()
 app.include_router(user_router)
+app.include_router(brand_router)
 
 
 @app.get("/")
