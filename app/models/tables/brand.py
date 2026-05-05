@@ -8,8 +8,8 @@ class Brand(Base):
     Represent a brand stored in the database.
 
     Attributes:
-        id (int): The id of the brand stored int the database.
-        name (str): The name of the brand stored int the database.
+        id (int): The id of the brand stored int the database.Ex.: 1
+        name (str): The name of the brand stored int the database. Ex.: 'renault'
     Relationships:
 
     Notes:
