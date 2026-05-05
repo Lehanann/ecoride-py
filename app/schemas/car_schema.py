@@ -13,7 +13,6 @@ class CarBase(BaseModel):
         energy (CarEnergy): The energy of the car.
         color (str): The color of the car.
         brand_id (int): The brand ID of the car.
-        user_id(int): The user ID of the car.
     """
     model: str = Field(..., description="The model of the car.")
     registration: date = Field(..., description="The registration of the car.")
@@ -21,7 +20,6 @@ class CarBase(BaseModel):
     energy: CarEnum = Field(..., description="The energy of the car.")
     color: str = Field(..., description="The color of the car.")
     brand_id: int = Field(..., description="The brand ID of the car.")
-    user_id: int = Field(..., description="The user ID of the car.")
 
 class CarCreate(CarBase):
     """
@@ -43,7 +41,8 @@ class CarUpdate(BaseModel):
         registration (str | None): The new registration of the car.
         first_date_registration (date): The first date of the car registration.
         energy (CarEnergy | None): The new energy of the car.
-        color (str ): The color of the car.
+        color (str | None): The color of the car.
+        brand_id (int | None): The brand ID of the car.
     """
     model: str | None = Field(None, description="The model of the car.")
     registration: str | None = Field(None, description="The registration of the car.")
@@ -51,7 +50,6 @@ class CarUpdate(BaseModel):
     energy: CarEnum | None = Field(None, description="The energy of the car.")
     color: str | None = Field(None, description="The color of the car.")
     brand_id: int | None = Field(None, description="The brand ID of the car.")
-    user_id: int | None = Field(None, description="The user ID of the car.")
 
 class CarRead(CarBase):
     """
