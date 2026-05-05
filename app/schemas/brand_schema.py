@@ -29,10 +29,11 @@ class BrandUpdate(BaseModel):
     Only fields provided in the request will be updated.
 
     Attributes:
-        name(str | None): The name of the brand.
+        name(str | None): The new name of the brand.
 
     Notes:
-        - .
+        - All fields are optional.
+        - Only provided fields will be updated.
     """
     name: str | None = Field(None,max_length=50, description="The name of the brand.")
 
