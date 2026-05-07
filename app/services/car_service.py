@@ -1,8 +1,7 @@
 from fastapi import HTTPException
-
 from app.models.tables.car import Car
 from app.repositories.car_repository import CarRepository
-from app.schemas.car_schema import CarCreate, CarUpdate
+from app.schemas.car_schema import CarCreate
 
 
 class CarService:
@@ -10,18 +9,25 @@ class CarService:
     def __init__(self, repository: CarRepository) -> None:
         self.repository = repository
 
-    async def get_by_id(self, car_id: int) -> Car:
+    async def get_all_cars_by_user(self, user_id: int) -> list[Car]:
+        """
+        Get all cars by user
+        Args:
+            user_id: User ID
+        Returns:
+            list[Car]: List of cars by user
+        """
+        return await self.repository.get_all_cars_by_user(user_id)
 
-        car = await self.repository.get_by_id(car_id)
-        if not car:
-            raise HTTPException(status_code=404,detail="Car not found")
-        return car
-
-    async def get_all(self) -> list[Car]:
-        return await self.repository.get_all()
-
-    async def create(self, data: CarCreate) -> Car:
-
+    async def create(self, data: CarCreate, user_id) -> Car:
+        """
+        Create a new car for a user
+        Args:
+            data (CarCreate): Car to be created
+            user_id (int): User ID
+        Returns:
+            Car: New car instance
+        """
         dataform = {
             "model" : data.model,
             "registration" : data.registration,
@@ -29,7 +35,7 @@ class CarService:
             "energy": data.energy,
             "color": data.color,
             "brand_id": data.brand_id,
-            "user_id": data.user_id,
+            "user_id": user_id,
         }
 
         try:
@@ -37,16 +43,12 @@ class CarService:
         except Exception:
             raise HTTPException(status_code=400,detail="Error creating car")
 
-    async def update(self, car_id: int, data: CarUpdate) -> Car:
 
-        dataform = data.model_dump(exclude_unset=True)
+    async def delete(self, car_id: int, user_id) -> None:
 
-        try:
-            updated_car = await self.repository.update(car_id, dataform)
-            if updated_car is None:
-                raise HTTPException(status_code=404,detail="Car not found")
-            return updated_car
-        except HTTPException:
-            raise
-        except Exception:
-            raise HTTPException(status_code=400,detail="Error updating car")
+        car_exists = await self.repository.get_by_id(car_id)
+        if not car_exists:
+            raise HTTPException(status_code=404, detail="Car not found")
+        if car_exists.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Failed to delete car")
+        await self.repository.delete(car_id)
