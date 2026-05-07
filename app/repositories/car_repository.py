@@ -1,8 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.tables.car import Car
-from app.models.tables.user import User
 
 
 class CarRepository:
@@ -19,32 +17,26 @@ class CarRepository:
 
     async def get_by_id(self, car_id: int) -> Car | None:
         """
-        Retrieves a car by its ID.
+        Gets a car by its ID.
         Args:
-            car_id (int): The ID of the car to retrieve.
+            car_id:
         Returns:
-            Car | None: The car instance if found, otherwise None.
+            car (Car): Return the car instance by its ID, otherwise None if not found.
+
         """
         return await self.db.get(Car, car_id)
 
-    async def get_all(self) -> list[Car]:
-        """
-        Retrieves all instances of car from database.
-        Returns:
 
-        """
-        return list(await self.db.scalars(select(Car)))
-
-    async def get_all_cars_by_user(self, user_id: int) -> list[Car] | None:
+    async def get_all_cars_by_user(self, user_id: int) -> list[Car]:
         """
         Retrieves all instances of car by their user ID.
         Args:
-            user_id:
+            user_id (int): The user ID.
 
         Returns:
-
+            list: List of car instances by their user ID.
         """
-        return list(await self.db.scalars(select(Car).where(User.id == user_id)))
+        return list(await self.db.scalars(select(Car).where(Car.user_id == user_id)))
 
     async def create(self, data: dict) -> Car:
         """
@@ -61,28 +53,6 @@ class CarRepository:
         await self.db.refresh(car)
         return car
 
-    async def update(self, car_id: int, data: dict) -> Car | None:
-        """
-        Updates a car by its ID.
-        Args:
-            car_id (int): The ID of the car to update.
-            data (dict): The updated car instance.
-
-        Returns:
-            Car | None: The car instance if found, otherwise None.
-        """
-        car = await self.get_by_id(car_id)
-        if car is None:
-            return None
-
-        for key, value in data.items():
-            setattr(car, key, value)
-
-        await self.db.commit()
-        await self.db.refresh(car)
-
-        return car
-
     async def delete(self, car_id: int) -> bool:
         """
         Deletes a car by its ID.
@@ -92,7 +62,7 @@ class CarRepository:
         Returns:
             True if the car was successfully deleted, False otherwise.
         """
-        car = await self.get_by_id(car_id)
+        car = await self.db.get(Car, car_id)
         if car is None:
             return False
 
