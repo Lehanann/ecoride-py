@@ -1,0 +1,151 @@
+-- ############################################
+-- SCHEMA DE LA BASE DE DONNEES POUR ECORIDE
+-- Projet: Site de covoiturage
+-- Auteur: Yohan Grondin
+-- Date 2026-04-19
+-- ############################################
+
+-- ############################################
+-- Create Type ENUM
+-- ############################################
+CREATE TYPE opinion_status  AS ENUM('pending','accepted','refused');
+CREATE TYPE carpooling_status AS ENUM('pending','in progress','done','cancelled');
+CREATE TYPE energy AS ENUM('diesel','essence','electric','hybrid');
+
+-- Users table
+-- Store personals and connections informations of users
+CREATE TABLE ecoride.users(
+   id SERIAL,
+   username VARCHAR(50) NOT NULL,
+   firstname VARCHAR(100),
+   lastname VARCHAR(100),
+   email VARCHAR(250) NOT NULL UNIQUE,
+   password_hash VARCHAR(256)  NOT NULL,
+   phone VARCHAR(10),
+   address VARCHAR(250),
+   birth_date DATE,
+   photo VARCHAR(255),
+   credit DECIMAL(10,2) ,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   updated_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY(id),
+   UNIQUE(email)
+);
+
+-- Opinions table
+-- Store opinions of users on driver
+CREATE TABLE ecoride.opinions(
+   id SERIAL,
+   comment TEXT NOT NULL,
+   note INT NOT NULL CHECK (note BETWEEN 1 AND 5),
+   status opinion_status DEFAULT('pending') NOT NULL,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   updated_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY(id)
+);
+
+-- Brands table
+-- Store brands of cars
+CREATE TABLE ecoride.brands(
+   id SERIAL,
+   name VARCHAR(50) NOT NULL,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   updated_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY(id)
+);
+
+-- Cars table
+-- Store cars of driver
+CREATE TABLE ecoride.cars(
+   id SERIAL,
+   model VARCHAR(50) NOT NULL,
+   registration VARCHAR(15) NOT NULL UNIQUE,
+   first_registration_date DATE NOT NULL,
+   energy energy NOT NULL,
+   color VARCHAR(100),
+   brand_id INT NOT NULL,
+   user_id INT NOT NULL,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   updated_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY(id),
+   FOREIGN KEY(brand_id) REFERENCES brands(id),
+   FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+-- Roles table
+-- Store roles of users driver, passenger, administrator, supervisor(employee)
+CREATE TABLE ecoride.roles(
+   id SERIAL,
+   name VARCHAR(50) NOT NULL,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   updated_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY(id)
+);
+
+-- Carpoolings table
+-- Store all carpoolings
+CREATE TABLE ecoride.carpoolings(
+   id SERIAL,
+   departure_date DATE NOT NULL,
+   departure_time TIME NOT NULL,
+   departure_location VARCHAR(200) NOT NULL,
+   end_date DATE NOT NULL,
+   end_time TIME NOT NULL,
+   end_location VARCHAR(200) NOT NULL,
+   status carpooling_status DEFAULT('pending') NOT NULL,
+   place_number SMALLINT NOT NULL,
+   price DECIMAL(10,2) NOT NULL CHECK (price >= 2),
+   car_id INT NOT NULL,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   updated_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY(id),
+   FOREIGN KEY(car_id) REFERENCES cars(id)
+);
+
+-- Carpoolings users pivot table
+-- Stores carpooling for each user
+CREATE TABLE ecoride.carpooling_user(
+   carpooling_id INT,
+   user_id INT,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY(carpooling_id, user_id ),
+   FOREIGN KEY(carpooling_id) REFERENCES carpoolings(id),
+   FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+-- role user pivot table
+-- Stores roles for each user
+CREATE TABLE ecoride.role_user(
+   role_id INT,
+   user_id INT,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY( role_id, user_id),
+   FOREIGN KEY(role_id) REFERENCES roles(id),
+   FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+-- Opinion user pivot table
+-- Store Opinions for each user
+CREATE TABLE ecoride.opinion_user(
+   opinion_id INT,
+   user_id INT,
+   PRIMARY KEY(opinion_id, user_id),
+   FOREIGN KEY(opinion_id) REFERENCES opinions(id),
+   FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+-- CREATE TABLE ecoride.configurations(
+   -- id SERIAL,
+   -- user_id INT NOT NULL,
+   -- PRIMARY KEY(id),
+   -- FOREIGN KEY(user_id) REFERENCES users(id)
+-- );
+
+-- CREATE TABLE ecoride.parametres(
+   -- id SERIAL,
+   -- property VARCHAR(50) NOT NULL,
+   -- valeur VARCHAR(50) NOT NULL,
+   -- configuration_id INT NOT NULL,
+   -- PRIMARY KEY(id),
+   -- FOREIGN KEY(configuration_id) REFERENCES configurations(id)
+-- );
