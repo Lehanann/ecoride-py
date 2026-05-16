@@ -34,6 +34,6 @@ class Car(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
 
     user = relationship("User", back_populates="cars")
+    carpoolings = relationship("Carpooling", back_populates="car")
     brand = relationship("Brand", back_populates="cars")
 
-    carpoolings = relationship("Carpooling", back_populates="car")
