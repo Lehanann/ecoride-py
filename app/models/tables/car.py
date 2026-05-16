@@ -1,3 +1,4 @@
+from enum import Enum
 from sqlalchemy import Integer, String, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ENUM
@@ -34,6 +35,4 @@ class Car(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
 
     user = relationship("User", back_populates="cars")
-    carpoolings = relationship("Carpooling", back_populates="car")
     brand = relationship("Brand", back_populates="cars")
-

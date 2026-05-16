@@ -36,3 +36,5 @@ class User(Base):
     credit: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, server_default=text('20'))
 
     cars = relationship("Car", back_populates="user")
+
+    reservations = relationship("Reservation", back_populates="user")

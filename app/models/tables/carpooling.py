@@ -41,3 +41,5 @@ class Carpooling(Base):
     car_id: Mapped[int] = mapped_column(Integer, ForeignKey('cars.id'), nullable=False)
 
     car = relationship("Car", back_populates="carpoolings")
+
+    reservations = relationship("Reservation", back_populates="carpooling")
