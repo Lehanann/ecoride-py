@@ -68,8 +68,6 @@ class UserRepository:
         """
         user = User(**data)
         self.db.add(user)
-        await self.db.commit()
-        await self.db.refresh(user)
         return user
 
     async def update(self,user_id: int, data: dict) -> User | None:
@@ -93,8 +91,6 @@ class UserRepository:
         for key, value in data.items():
             setattr(user, key, value)
 
-        await self.db.commit()
-        await self.db.refresh(user)
         return user
 
     async def delete(self, user_id: int) ->  bool:
