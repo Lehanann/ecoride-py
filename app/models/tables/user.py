@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from databases.postgresql import Base
 from datetime import date
 from decimal import Decimal
+from app.models.association_tables import role_user
 
 class User(Base):
     """
@@ -36,5 +37,5 @@ class User(Base):
     credit: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, server_default=text('20'))
 
     cars = relationship("Car", back_populates="user")
-
+    roles = relationship("Role", secondary=role_user,back_populates="users")
     reservations = relationship("Reservation", back_populates="user")
