@@ -1,8 +1,9 @@
-from fastapi import APIRouter, UploadFile, File, Form,  Depends, status
+from fastapi import APIRouter, UploadFile, File, Form,  Depends, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from databases.postgresql import get_session
 from app.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
+from app.repositories.role_repository import RoleRepository
 from app.schemas.user_schema import UserCreate,UserUpdate,UserRead
 from app.schemas.change_password_schema import ChangePasswordSchema
 from datetime import date
@@ -10,7 +11,7 @@ from datetime import date
 router = APIRouter(prefix="/user",tags=["user"])
 
 def get_service_user(db: AsyncSession = Depends(get_session)) -> UserService:
-    return UserService(UserRepository(db))
+    return UserService(UserRepository(db), RoleRepository(db))
 
 @router.get("/",response_model=list[UserRead])
 async def list_users(service: UserService = Depends(get_service_user)):
@@ -30,8 +31,8 @@ async def list_users(service: UserService = Depends(get_service_user)):
     """
     return await service.get_all()
 
-@router.get("/{user_id}",response_model=UserRead)
-async def get_user(user_id: int, service: UserService = Depends(get_service_user)):
+@router.get("/me",response_model=UserRead)
+async def get_user(request: Request, service: UserService = Depends(get_service_user)):
     """
         Retrieve user by its ID from the database.
 
@@ -39,7 +40,7 @@ async def get_user(user_id: int, service: UserService = Depends(get_service_user
         them in the format specified by the `UserRead` schema.
 
         Args:
-            user_id (int): Unique identifier of the user
+            request (Request): Unique identifier of the user
             service (UserService, optional): The service layer for handling user-related operations.
                                             This is injected automatically using `Depends(get_user_service)`.
 
@@ -47,6 +48,7 @@ async def get_user(user_id: int, service: UserService = Depends(get_service_user
             user (UserRead): A user represented by the `UserRead`
                 schema, which includes relevant user details such as name and ID.
         """
+    user_id: int = request.state.user_id
     return await service.get_by_id(user_id)
 
 @router.post("/",response_model=dict[str,str], status_code=status.HTTP_201_CREATED)
@@ -97,9 +99,9 @@ async def create_user(
     await service.create_user(data, avatar_file)
     return {"message":"User created successfully"}
 
-@router.patch("/{user_id}",response_model=dict[str,str], status_code=status.HTTP_200_OK)
+@router.patch("/me",response_model=dict[str,str], status_code=status.HTTP_200_OK)
 async def update_user(
-        user_id: int,
+        request: Request,
         username: str | None = Form(None),
         email: str | None = Form(None),
         firstname: str | None = Form(None),
@@ -107,12 +109,13 @@ async def update_user(
         phone: str | None = Form(None),
         address: str | None = Form(None),
         birth_date: date | None = Form(None),
-        avatar_file: UploadFile = File(None),
+        avatar_file: UploadFile | None = File(None),
+        roles: list[str] | None = Form(None),
         service: UserService = Depends(get_service_user)):
     """
     Updates an existing user in the database.
     Args:
-        user_id (int): The id of the user to update.
+        request (Request): containing auth user information.
         username (str, optional): The username of the user to update.
         email (str, optional): The email of the user to update.
         firstname (str, optional): The first name of the user to update.
@@ -121,13 +124,14 @@ async def update_user(
         address (str, optional): The address of the user to update.
         birth_date (date, optional): The birthdate of the user to update.
         avatar_file (UploadFile, optional): The file containing the avatar of the user to update.
+        roles (list[str], optional): The roles of the user to update.
         service (UserService, optional): The service layer for handling user-related operations.
                                             This is injected automatically using `Depends(get_user_service)`.
 
     Returns:
         dict[str,str]: A dictionary containing a success message if the user was updated successfully.
     """
-
+    user_id: int = request.state.user_id
     raw_data = {
         "username": username,
         "email": email,
@@ -136,6 +140,7 @@ async def update_user(
         "phone": phone,
         "address": address,
         "birth_date": birth_date,
+        "roles": roles,
     }
 
     data_dict = dict()
@@ -149,12 +154,12 @@ async def update_user(
     await service.update_user(user_id, data, avatar_file)
     return {"message":"User updated successfully"}
 
-@router.put("/{user_id}/change-password",response_model=dict[str,str], status_code=status.HTTP_200_OK)
-async def change_password(user_id: int, passwords: ChangePasswordSchema , service: UserService = Depends(get_service_user)):
+@router.put("/me/change-password",response_model=dict[str,str], status_code=status.HTTP_200_OK)
+async def change_password(request: Request, passwords: ChangePasswordSchema , service: UserService = Depends(get_service_user)):
     """
     Change the password of a user in the database.
     Args:
-        user_id (int): The id of the user to update.:
+        request (Request): The id of the user to update.:
         passwords (PasswordsSchema): A schema containing passwords of the user to update.:
         service (UserService, optional): The service layer for handling user-related operations.
                                             This is injected automatically using `Depends(get_user_service)`.
@@ -162,6 +167,7 @@ async def change_password(user_id: int, passwords: ChangePasswordSchema , servic
     Returns:
         dict[str,str]: A dictionary containing a success message if the password was modified successfully.
     """
+    user_id: int = request.state.user_id
     await service.change_password_user(user_id,passwords)
     return {"message":"Password changed successfully"}
 
