@@ -79,6 +79,7 @@ class UserUpdate(BaseModel):
     address: str | None = Field(None, max_length=250, description="The address of the user.")
     birth_date: date | None = Field(None, description="The date of birth of the user.")
     avatar_url: str | None = Field(None,max_length=254, description="The public URL of the user's photo.")
+    roles: list[str] | None = Field(None, min_length=1, description="The roles of the user.")
 
 class UserRead(UserBase):
     """
@@ -89,8 +90,9 @@ class UserRead(UserBase):
         id (int): The id of the user.
         avatar_url (str): The public URL of the user's photo.
         credit (Decimal): The credit of the user.
+        roles (list[str]): The roles of the user.
     """
     id: int
     credit: Decimal = Field(...,max_digits=6, decimal_places=2, description="The credit of the user.")
-
+    roles: list[str] = Field(..., description="The roles of the user.")
     model_config = ConfigDict(from_attributes=True)
