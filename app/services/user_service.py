@@ -1,21 +1,27 @@
-from fastapi import UploadFile, HTTPException
+from fastapi import UploadFile, HTTPException, status
+from psycopg import IntegrityError
+
 from app.models.tables.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.change_password_schema import ChangePasswordSchema
 from app.schemas.user_schema import UserCreate,UserUpdate
 from app.services.file_service import FileService
 from app.core.security.password_security import create_password_hash, verify_password
+from app.models.tables.role import Role
+from repositories.role_repository import RoleRepository
+
 
 class UserService:
     """
     User service that performs operations on the user repository such as reading; creating, updating, and deleting users.
     """
-    def __init__(self, repository: UserRepository):
+    def __init__(self, repository: UserRepository, role_repository: RoleRepository):
         """
         Initialize the user service with the user repository.
         :param repository:
         """
         self.repository = repository
+        self.role_repository = role_repository
 
     async def get_by_id(self, user_id: int) -> User | None:
         """
@@ -45,7 +51,7 @@ class UserService:
 
         return await self.repository.get_all()
 
-    async def create_user(self, data: UserCreate, avatar: UploadFile | None):
+    async def create_user(self, data: UserCreate, avatar: UploadFile | None) -> User:
         """
         Create a new user in the repository
         Args:
@@ -88,9 +94,16 @@ class UserService:
                 dataform[key] = value
 
         try:
-            return await self.repository.create(dataform)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Email or username already in use")
+            created_user = await self.repository.create(dataform)
+            role = await self.role_repository.get_by_name("passenger")
+            if role is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+            created_user.roles.append(role)
+            await self.repository.db.commit()
+            return created_user
+        except IntegrityError:
+            await self.repository.db.rollback()
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
 
     async def update_user(self, user_id: int, data: UserUpdate, avatar: UploadFile | None) -> User | None:
@@ -114,12 +127,25 @@ class UserService:
 
         try:
             update_user = await self.repository.update(user_id, dataform)
+
             if update_user is None:
                 raise HTTPException(status_code=404, detail="User not found")
+
+            if "roles" in dataform:
+                new_roles = []
+                for role in dataform["roles"]:
+                    if role not in ["passenger","driver"]:
+                        raise HTTPException(status_code=400, detail="Role not found")
+                    role_data = await self.role_repository.get_by_name(role)
+                    if role_data is None:
+                        raise HTTPException(status_code=400, detail="Role not found")
+                    new_roles.append(role_data)
+                update_user.roles = new_roles
+
+            await self.repository.db.commit()
             return update_user
-        except HTTPException:
-            raise
-        except Exception:
+        except IntegrityError:
+            await self.repository.db.rollback()
             raise HTTPException(status_code=400, detail="Error updating user")
 
     async def change_password_user(self, user_id: int, passwords: ChangePasswordSchema) -> str:
@@ -156,6 +182,14 @@ class UserService:
             raise HTTPException(status_code=400, detail="Error updating user")
 
     async def delete_user(self, user_id: int) -> None:
+        """
+        Delete an existing user in the repository.
+        Args:
+            user_id:
+
+        Returns:
+
+        """
         user = await self.repository.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
