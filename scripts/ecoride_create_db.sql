@@ -80,7 +80,8 @@ CREATE TABLE ecoride.opinions(
    note INT NOT NULL CHECK (note BETWEEN 1 AND 5),
    status opinion_status DEFAULT 'pending' NOT NULL,
    carpooling_id INT NOT NULL REFERENCES ecoride.carpoolings(id),  -- Lien au trajet
-   user_id INT NOT NULL REFERENCES ecoride.users(id),  -- Auteur (passager)
+   author_id INT NOT NULL REFERENCES ecoride.users(id),  -- Auteur (passager)
+   target_id INT NOT NULL REFERENCES ecoride.users(id), -- Cible de l'avis (chauffeur)
    validator_id INT REFERENCES ecoride.users(id),  -- Superviseur (NULL si non validé)
    validated_at TIMESTAMPTZ,  -- Date de validation (NULL si non validé)
    created_at TIMESTAMPTZ DEFAULT NOW(),
