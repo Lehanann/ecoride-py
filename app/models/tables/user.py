@@ -7,7 +7,7 @@ from app.models.association_tables import role_user
 
 class User(Base):
     """
-    Represent a user stored int the database
+    Represent a user stored in the database
     Attributes:
         id (int): The id of the user. Ex.: 1
         username (str): The username of the user. Ex.: 'jdoe'
@@ -39,3 +39,18 @@ class User(Base):
     cars = relationship("Car", back_populates="user")
     roles = relationship("Role", secondary=role_user,back_populates="users")
     reservations = relationship("Reservation", back_populates="user")
+    opinions_given = relationship(
+        "Opinion",
+        foreign_keys="Opinion.author_id",
+        back_populates="author"
+    )
+    opinions_received = relationship(
+        "Opinion",
+        foreign_keys="Opinion.target_id",
+        back_populates="target"
+    )
+    opinions_validated = relationship(
+        "Opinion",
+        foreign_keys="Opinion.validator_id",
+        back_populates="validator"
+    )

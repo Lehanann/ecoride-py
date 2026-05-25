@@ -8,7 +8,7 @@ from decimal import Decimal
 
 class Carpooling(Base):
     """
-    Represents a carpooling stored int the database.
+    Represents a carpooling stored in the database.
     Attributes:
         id (int): The ID of the carpooling. Ex.: 1
         departure_date (date): The date of the departure of the carpooling. Ex.: '2020-04-01' YYYY-MM-DD
@@ -41,5 +41,5 @@ class Carpooling(Base):
     car_id: Mapped[int] = mapped_column(Integer, ForeignKey('cars.id'), nullable=False)
 
     car = relationship("Car", back_populates="carpoolings")
-
     reservations = relationship("Reservation", back_populates="carpooling")
+    opinions = relationship("Opinion", back_populates="carpooling")
