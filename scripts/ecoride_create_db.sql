@@ -3,7 +3,7 @@
 -- ############################################
 
 -- Types ENUM
-CREATE TYPE opinion_status AS ENUM('pending', 'accepted', 'refused');
+CREATE TYPE opinion_status AS ENUM('pending', 'approved', 'rejected');
 CREATE TYPE carpooling_status AS ENUM('draft', 'published', 'finished', 'cancelled');
 CREATE TYPE energy AS ENUM('diesel', 'essence', 'electric', 'hybrid');
 
@@ -99,8 +99,8 @@ CREATE TABLE ecoride.transactions(
    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Table carpooling_user (participants aux trajets)
-CREATE TABLE ecoride.carpooling_user(
+-- Table carpoolings_users (participants aux trajets)
+CREATE TABLE ecoride.carpoolings_users(
    carpooling_id INT NOT NULL,
    user_id INT NOT NULL,
    created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -109,8 +109,8 @@ CREATE TABLE ecoride.carpooling_user(
    FOREIGN KEY(user_id) REFERENCES ecoride.users(id)
 );
 
--- Table role_user (rôles des utilisateurs)
-CREATE TABLE ecoride.role_user(
+-- Table roles_users (rôles des utilisateurs)
+CREATE TABLE ecoride.roles_users(
    role_id INT NOT NULL,
    user_id INT NOT NULL,
    created_at TIMESTAMPTZ DEFAULT NOW(),
