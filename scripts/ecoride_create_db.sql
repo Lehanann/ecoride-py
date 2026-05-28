@@ -6,6 +6,7 @@
 CREATE TYPE opinion_status AS ENUM('pending', 'approved', 'rejected');
 CREATE TYPE carpooling_status AS ENUM('draft', 'published', 'finished', 'cancelled');
 CREATE TYPE energy AS ENUM('diesel', 'essence', 'electric', 'hybrid');
+CREATE TYPE transaction_type AS ENUM('payment', 'commission', 'refund');
 
 -- Table users
 CREATE TABLE ecoride.users(
@@ -91,11 +92,10 @@ CREATE TABLE ecoride.opinions(
 -- Table transactions (pour suivre les crédits)
 CREATE TABLE ecoride.transactions(
    id SERIAL PRIMARY KEY,
-   amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
-   sender_id INT NOT NULL REFERENCES ecoride.users(id),  -- Expéditeur (passager)
-   receiver_id INT NOT NULL REFERENCES ecoride.users(id),  -- Destinataire (conducteur ou société)
-   carpooling_id INT REFERENCES ecoride.carpoolings(id),  -- Lien au trajet
-   transaction_type VARCHAR(20) NOT NULL,  -- 'driver_fee', 'company_fee'
+   amount DECIMAL(6, 2) NOT NULL,
+   user_id INT NOT NULL REFERENCES ecoride.users(id),  -- user
+   carpooling_id INT NOT NULL REFERENCES ecoride.carpoolings(id),  -- Lien au trajet
+   transaction_type transaction_type NOT NULL,
    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
