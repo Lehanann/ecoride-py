@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.tables.user import User
-from typing import List
 from datetime import datetime, UTC
 
 
@@ -23,7 +22,8 @@ class UserRepository:
         Retrieve a user instance by its ID
 
         Args:
-            user_id: Yhe unique identifier of the user.
+            user_id: The unique identifier of the user.
+
         Returns:
             User | None: The user instance if found, otherwise None.
         """
@@ -36,6 +36,7 @@ class UserRepository:
 
         Args:
             email (str): the email of user.
+
         Returns:
              User | None: The user instance if found, otherwise None.
         """
@@ -48,13 +49,14 @@ class UserRepository:
 
         Args:
             username (str): The username of user.
+
         Returns:
              User | None: The user instance if found, otherwise None.
         """
         result = await self.db.execute(select(User).where(User.username == username).where(User.is_active == True))
         return result.scalars().one_or_none()
 
-    async def get_all(self) -> List[User]:
+    async def get_all(self) -> list[User]:
         """
         Retrieve all instances of user from the database.
 
@@ -69,6 +71,7 @@ class UserRepository:
 
         Args:
             data (dict): Schema containing fields to create the user instance.
+
         Returns:
              user(User): The new user instance.
         """
@@ -86,10 +89,7 @@ class UserRepository:
 
         Returns:
              user(User): The updated user instance.
-        Side Effects:
-            Commits changes to the database and refreshes the user instance.
         """
-
         user = await self.get_by_id(user_id)
         if user is None:
             return None
@@ -99,7 +99,7 @@ class UserRepository:
 
         return user
 
-    async def delete(self, user_id: int) -> User| None:
+    async def delete(self, user_id: int) -> User | None:
         """
         Delete an existing user instance by its ID.
 
@@ -107,10 +107,10 @@ class UserRepository:
             user_id(int): The user ID to delete.
 
         Returns:
-             bool: True if the user instance was successfully deleted, False otherwise.
+             User | None: The deleted user instance. otherwise None.
         """
         user = await self.get_by_id(user_id)
-        if not user:
+        if user is None:
             return None
         user.is_active = False
         user.deleted_at = datetime.now(UTC)
