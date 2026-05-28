@@ -13,18 +13,22 @@ class BrandService:
     def __init__(self, repository: BrandRepository) -> None:
         """
         Initialize the brand service with the brand repository.
+
         Args:
-            repository:
+            repository (BrandRepository): The repository of the brand.
         """
         self.repository = repository
 
     async def get_by_id(self, brand_id: int) -> Brand:
         """
-        Get a brand from the repository by its id.
+         Retrieve a brand by its id.
+
         Args:
             brand_id(int): The ID of the brand.
+
         Raises:
             HTTPException: if the ID of brand is not found.
+
         Returns:
              brand(Brand): The brand with the given ID.
         """
@@ -35,11 +39,14 @@ class BrandService:
 
     async def get_by_name(self, name: str) -> Brand:
         """
-        Get a brand from the repository by its name.
+        Retrieve a brand by its name.
+
         Args:
             name str: The name of the brand.
+
         Raises:
             HTTPException: if the name is not found.
+
         Returns:
             brand(Brand): The brand with the given name.
         """
@@ -50,20 +57,22 @@ class BrandService:
 
     async def get_all(self) -> List[Brand]:
         """
-        Get all brands from the repository.
+        Retrieve all brands.
+
         Returns:
-            list(Brand): A list of brands.
+            list(Brand): The list of brands.
         """
         return await self.repository.get_all()
 
     async def create(self, data: BrandCreate) -> Brand:
         """
-        Create a new brand from the repository.
+        Create a new brand.
+
         Args:
-            data (BrandCreate):  The schema containing fields to create new instance brand.
+            data (BrandCreate):  The data required to create a brand.
 
         Returns:
-            brand(Brand): The newly created instance of brand.
+            brand(Brand): The newly created brand.
         """
         dataform = {
             "name": data.name,
@@ -76,13 +85,16 @@ class BrandService:
 
     async def update(self, brand_id: int, data: BrandUpdate) -> Brand:
         """
-        Update an existing brand from the repository.
+        Update an existing brand.
+
         Args:
             brand_id (int): The ID of the brand to update.
-            data (BrandUpdate): The schema containing fields to update an existing brand.:
+            data (BrandUpdate): The fields to update.
+
         Raises:
             - HTTPException: if the ID of brand is not found.
             - HTTPException: if the ID of brand is not updated.
+
         Returns:
             update_brand(Brand): The updated brand with the given ID.
         """
