@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.tables.brand import Brand
-from typing import List
 
 class BrandRepository:
     """
@@ -10,6 +9,7 @@ class BrandRepository:
     def __init__(self, db: AsyncSession):
         """
         Initialize the Brand repository with database session.
+
         Args:
             db (AsyncSession): Asynchronous database session.
         """
@@ -20,7 +20,8 @@ class BrandRepository:
        Retrieve a brand instance by its ID
 
         Args:
-            brand_id: Yhe unique identifier of the brand.
+            brand_id: The unique identifier of the brand.
+
         Returns:
             Brand | None: The brand instance if found, otherwise None.
 
@@ -31,15 +32,17 @@ class BrandRepository:
     async def get_by_name(self, name: str) -> Brand | None:
         """
          Retrieve a brand instance by its name.
+
         Args:
             name (str): The name of brand.
+
         Returns:
              Brand | None: The brand instance if found, otherwise None.
         """
         result = await self.db.execute(select(Brand).where(Brand.name == name))
         return result.scalar_one_or_none()
 
-    async def get_all(self) -> List[Brand]:
+    async def get_all(self) -> list[Brand]:
         """
         Retrieve all instances of brand from the database.
 
@@ -50,17 +53,16 @@ class BrandRepository:
 
     async def create(self, data: dict ) -> Brand:
         """
-        Create a new brand instance, with the password hashed
+        Create a new brand instance.
 
         Args:
             data (dict): Schema containing fields to create the brand instance.
+
         Returns:
              brand(Brand): The new brand instance.
         """
         brand = Brand(**data)
         self.db.add(brand)
-        await self.db.commit()
-        await self.db.refresh(brand)
         return brand
 
     async def update(self, brand_id: int, data: dict ) -> Brand | None:
@@ -73,8 +75,6 @@ class BrandRepository:
 
         Returns:
              brand(Brand): The updated brand instance.
-        Side Effects:
-            Commits changes to the database and refreshes the brand instance.
         """
         brand = await self.get_by_id(brand_id)
         if brand is None:
@@ -82,24 +82,20 @@ class BrandRepository:
 
         for key, value in data.items():
             setattr(brand, key, value)
-
-        await self.db.commit()
-        await self.db.refresh(brand)
         return brand
 
-    async def delete(self, brand_id: int) -> bool:
+    async def delete(self, brand_id: int) -> Brand | None:
         """
         Delete an existing brand instance by its ID.
+
         Args:
             brand_id(int): The brand ID to delete.
+
         Returns:
              bool: True if the brand instance was successfully deleted, False otherwise.
-        Side Effects:
-            Commits deletion to the database.
         """
         brand = await self.get_by_id(brand_id)
         if brand is None:
-            return False
+            return None
         await self.db.delete(brand)
-        await self.db.commit()
-        return True
+        return brand
