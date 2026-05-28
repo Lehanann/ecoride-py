@@ -1,7 +1,7 @@
-from sqlalchemy import Integer, String, Date, Numeric, text
+from sqlalchemy import Integer, String, Date, Numeric, text, Boolean, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from databases.postgresql import Base
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from app.models.association_tables import role_user
 
@@ -20,6 +20,10 @@ class User(Base):
         birth_date(date): Date of birth of the user.(YYYY-mm-dd) Ex: '1981-01-01'
         avatar_url (str): Path photo of the user. Ex.: /storage/bb245fea5411zsz/e5rqd2d14.png
         credit (Numeric): The credit of the user. Ex.: 20
+        created_at (Datetime): The date when the user was created.
+        updated_at (Datetime): The date when the user was last updated.
+        is_active (bool): Whether the user is active, default true. Ex. True
+        deleted_at (datetime): The date when the user was deleted. Used to soft delete.
     """
 
     __tablename__ = "users"
@@ -35,6 +39,10 @@ class User(Base):
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(254), nullable=True)
     credit: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, server_default=text('20'))
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False,server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False,server_default=func.now())
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
+    deleted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     cars = relationship("Car", back_populates="user")
     roles = relationship("Role", secondary=role_user,back_populates="users")
