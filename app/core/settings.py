@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     PG_HOST: str = Field(default="localhost")
     PG_PORT: int = Field(default=5432)
     PG_DB: str = Field(default="postgres")
-    PG_SCHEMA: str = Field(default="postgres")
+    PG_SCHEMA: str = Field(default="public")
 
     @property
     def dsn_async(self) -> str:
