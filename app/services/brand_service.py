@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import HTTPException
 from app.models.tables.brand import Brand
 from app.repositories.brand_repository import BrandRepository
@@ -33,7 +31,7 @@ class BrandService:
              brand(Brand): The brand with the given ID.
         """
         brand = await self.repository.get_by_id(brand_id)
-        if not brand:
+        if brand is None:
             raise HTTPException(status_code=404, detail="Brand not found")
         return brand
 
@@ -51,16 +49,16 @@ class BrandService:
             brand(Brand): The brand with the given name.
         """
         brand = await self.repository.get_by_name(name)
-        if not brand:
+        if brand is None:
             raise HTTPException(status_code=404, detail="Brand not found")
         return brand
 
-    async def get_all(self) -> List[Brand]:
+    async def get_all(self) -> list[Brand]:
         """
         Retrieve all brands.
 
         Returns:
-            list(Brand): The list of brands.
+            list[Brand]: The list of brands.
         """
         return await self.repository.get_all()
 
@@ -79,8 +77,11 @@ class BrandService:
         }
 
         try:
-            return await self.repository.create(dataform)
+            brand = await self.repository.create(dataform)
+            await self.repository.db.commit()
+            return brand
         except Exception:
+            await self.repository.db.rollback()
             raise HTTPException(status_code=400, detail="Error creating Brand")
 
     async def update(self, brand_id: int, data: BrandUpdate) -> Brand:
@@ -104,8 +105,8 @@ class BrandService:
             update_brand = await self.repository.update(brand_id, dataform)
             if update_brand is None:
                 raise HTTPException(status_code=404, detail="Brand not found")
+            await self.repository.db.commit()
             return update_brand
-        except HTTPException:
-            raise
         except Exception:
+            await self.repository.db.rollback()
             raise HTTPException(status_code=400, detail="Error updating brand")
