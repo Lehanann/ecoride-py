@@ -1,8 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.models.tables.carpooling import Carpooling
 from app.models.tables.car import Car
 from app.utils.carpooling_status_enum import CarpoolingStatusEnum
+from models.tables.reservation import Reservation
 
 
 class CarpoolingRepository:
@@ -29,7 +31,14 @@ class CarpoolingRepository:
         Returns:
             Carpooling | None: The carpooling instance if found, otherwise None.
         """
-        return await self.db.get(Carpooling, carpooling_id)
+        result = await self.db.execute(
+            select(Carpooling)
+            .options(
+                selectinload(Carpooling.car).selectinload(Car.user),
+                selectinload(Carpooling.reservations).selectinload(Reservation.user))
+            .where(Carpooling.id == carpooling_id)
+        )
+        return result.scalar_one_or_none()
 
     async def get_all(self) -> list[Carpooling]:
         """
@@ -115,8 +124,6 @@ class CarpoolingRepository:
             return None
 
         carpooling.status = status
-        await self.db.commit()
-        await self.db.refresh(carpooling)
         return carpooling
 
     async def delete(self, carpooling_id: int) -> bool:
