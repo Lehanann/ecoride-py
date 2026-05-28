@@ -5,11 +5,18 @@ from app.schemas.carpooling_schema import CarpoolingCreate, CarpoolingRead, Carp
 from app.services.carpooling_service import CarpoolingService
 from app.repositories.carpooling_repository import CarpoolingRepository
 from databases.postgresql import get_session
+from app.services.transaction_service import TransactionService
+from repositories.transaction_repository import TransactionRepository
 
 router = APIRouter(prefix="/carpooling", tags=["carpooling"])
 
 def get_service_carpooling(db: AsyncSession = Depends(get_session)) -> CarpoolingService:
-    return CarpoolingService(CarpoolingRepository(db), UserRepository(db))
+    return CarpoolingService(CarpoolingRepository(db),
+                             UserRepository(db),
+                             TransactionService(
+                                 TransactionRepository(db),
+                                 CarpoolingRepository(db),
+                                 UserRepository(db)))
 
 
 @router.get("/", response_model=list[CarpoolingRead])
