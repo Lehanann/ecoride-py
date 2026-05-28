@@ -22,7 +22,9 @@ CREATE TABLE ecoride.users(
    photo VARCHAR(255),
    credit DECIMAL(6, 2) DEFAULT 20,  -- 20 crédits par défaut
    created_at TIMESTAMPTZ DEFAULT NOW(),
-   updated_at TIMESTAMPTZ DEFAULT NOW()
+   updated_at TIMESTAMPTZ DEFAULT NOW(),
+   is_active BOOLEAN NOT NULL DEFAULT TRUE
+   deleted_at TIMESTAMPTZ
 );
 
 -- Table brands
@@ -118,3 +120,30 @@ CREATE TABLE ecoride.roles_users(
    FOREIGN KEY(role_id) REFERENCES ecoride.roles(id),
    FOREIGN KEY(user_id) REFERENCES ecoride.users(id)
 );
+
+-- ==========================================
+-- TRIGGERS POUR AUTOMATISER updated_at
+-- ==========================================
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    t TEXT;
+BEGIN
+    FOR t IN
+        SELECT unnest(ARRAY[
+            'users','brands','cars', 'roles','carpoolings','opinions'
+        ])
+    LOOP
+        EXECUTE format(
+            'CREATE TRIGGER trg_update_timestamp_%I BEFORE UPDATE ON ecoride.%I FOR EACH ROW EXECUTE FUNCTION set_updated_at();',
+            t, t
+        );
+    END LOOP;
+END $$;
