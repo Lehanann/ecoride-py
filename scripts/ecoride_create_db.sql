@@ -19,11 +19,11 @@ CREATE TABLE ecoride.users(
    phone VARCHAR(10),
    address VARCHAR(250),
    birth_date DATE,
-   photo VARCHAR(255),
+   avatar_url VARCHAR(255),
    credit DECIMAL(6, 2) DEFAULT 20,  -- 20 crédits par défaut
    created_at TIMESTAMPTZ DEFAULT NOW(),
    updated_at TIMESTAMPTZ DEFAULT NOW(),
-   is_active BOOLEAN NOT NULL DEFAULT TRUE
+   is_active BOOLEAN NOT NULL DEFAULT TRUE,
    deleted_at TIMESTAMPTZ
 );
 
@@ -39,10 +39,10 @@ CREATE TABLE ecoride.brands(
 CREATE TABLE ecoride.cars(
    id SERIAL PRIMARY KEY,
    model VARCHAR(50) NOT NULL,
-   registration VARCHAR(15) NOT NULL UNIQUE,
+   registration VARCHAR(15) NOT NULL,
    first_registration_date DATE NOT NULL,
    energy energy NOT NULL,
-   color VARCHAR(100),
+   color VARCHAR(100) NOT NULL,
    brand_id INT NOT NULL,
    user_id INT NOT NULL REFERENCES ecoride.users(id),  -- Propriétaire = conducteur
    created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -88,7 +88,6 @@ CREATE TABLE ecoride.opinions(
    validator_id INT REFERENCES ecoride.users(id),  -- Superviseur (NULL si non validé)
    validated_at TIMESTAMPTZ,  -- Date de validation (NULL si non validé)
    created_at TIMESTAMPTZ DEFAULT NOW(),
-   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Table transactions (pour suivre les crédits)
