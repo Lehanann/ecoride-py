@@ -1,13 +1,11 @@
 from fastapi import UploadFile, HTTPException, status
 from psycopg import IntegrityError
-
 from app.models.tables.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.change_password_schema import ChangePasswordSchema
 from app.schemas.user_schema import UserCreate,UserUpdate
 from app.services.file_service import FileService
 from app.core.security.password_security import create_password_hash, verify_password
-from app.models.tables.role import Role
 from repositories.role_repository import RoleRepository
 
 
@@ -15,54 +13,61 @@ class UserService:
     """
     User service that performs operations on the user repository such as reading; creating, updating, and deleting users.
     """
-    def __init__(self, repository: UserRepository, role_repository: RoleRepository):
+    def __init__(self, user_repository: UserRepository, role_repository: RoleRepository):
         """
         Initialize the user service with the user repository.
-        :param repository:
+
+        Args:
+            user_repository (UserRepository): The repository of the user.
+            role_repository (RoleRepository): The repository of the role.
         """
-        self.repository = repository
+        self.user_repository = user_repository
         self.role_repository = role_repository
 
     async def get_by_id(self, user_id: int) -> User | None:
         """
-        Get a user from the repository by its id.
+        Retrieve an active user by its ID.
+
         Args:
-            user_id(int): The ID of the user.
+            user_id (int): The ID of the user.
+
         Raises:
-            HTTPException: if the ID of user is not found.
+            HTTPException: If the user is not found.
+
         Returns:
-             user(User): The user with the given ID.
+            User: The user with the given ID.
         """
-        user = await self.repository.get_by_id(user_id)
-        if not user:
+        user = await self.user_repository.get_by_id(user_id)
+        if user is None:
             raise HTTPException(status_code=404, detail="User not found")
         return user
 
     async def get_all(self) -> list[User]:
         """
-        Get all users from the repository.
-
-        Raises:
-            HTTPException: if the list of users is empty.
+        Retrieve all active users.
 
         Returns:
-            list[User]: The list of users in the repository.
+            list[User]: The list of active users.
         """
-
-        return await self.repository.get_all()
+        return await self.user_repository.get_all()
 
     async def create_user(self, data: UserCreate, avatar: UploadFile | None) -> User:
         """
-        Create a new user in the repository
-        Args:
-            data (UserCreate): The schema containing fields to create new instance user.
-            avatar (UploadFile): The file uploaded new user's avatar. if file exists save the file into storage and get url path
-        Raises:
-            HTTPException: if the new user is already created.
-        Returns:
-             user(User): The newly created instance of user.
-        """
+        Create a new user.
 
+        Args:
+            data (UserCreate): The data required to create a user.
+            avatar (UploadFile | None): Optional avatar file.
+
+        Raises:
+            HTTPException:
+                - If passwords do not match.
+                - If default role is not found.
+                - If a user with the same constraints already exists.
+
+        Returns:
+            User: The newly created user.
+        """
         if data.confirm_password != data.password:
             raise HTTPException(status_code=400, detail="Password and confirm_password are not equal")
 
@@ -71,7 +76,7 @@ class UserService:
         avatar_url: str | None = None
 
         if avatar:
-            avatar_url: str = FileService.save_profile_image(avatar)
+            avatar_url = FileService.save_profile_image(avatar)
 
         dataform = {
             "username": data.username,
@@ -94,41 +99,46 @@ class UserService:
                 dataform[key] = value
 
         try:
-            created_user = await self.repository.create(dataform)
+            created_user = await self.user_repository.create(dataform)
             role = await self.role_repository.get_by_name("passenger")
             if role is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
             created_user.roles.append(role)
-            await self.repository.db.commit()
+            await self.user_repository.db.commit()
             return created_user
         except IntegrityError:
-            await self.repository.db.rollback()
+            await self.user_repository.db.rollback()
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
 
     async def update_user(self, user_id: int, data: UserUpdate, avatar: UploadFile | None) -> User | None:
         """
-        Update an existing user in the repository.
+        Update an existing user.
 
         Args:
             user_id (int): The ID of the user to update.
-            data (UserUpdate): The schema containing fields to update an instance user.
-            avatar (UploadFile):
+            data (UserUpdate): The fields to update.
+            avatar (UploadFile | None): Optional avatar file.
 
         Raises:
+            HTTPException:
+                - If the user is not found.
+                - If a role is invalid or not found.
+                - If an error occurs during update.
 
         Returns:
+            User: The updated user.
         """
         dataform = data.model_dump(exclude_unset=True)
 
         if avatar is not None:
-            avatar_url: str | None = FileService.save_profile_image(avatar)
+            avatar_url = FileService.save_profile_image(avatar)
             dataform['avatar_url'] = avatar_url
 
         try:
-            update_user = await self.repository.update(user_id, dataform)
+            updated_user = await self.user_repository.update(user_id, dataform)
 
-            if update_user is None:
+            if updated_user is None:
                 raise HTTPException(status_code=404, detail="User not found")
 
             if "roles" in dataform:
@@ -140,28 +150,36 @@ class UserService:
                     if role_data is None:
                         raise HTTPException(status_code=400, detail="Role not found")
                     new_roles.append(role_data)
-                update_user.roles = new_roles
+                updated_user.roles = new_roles
 
-            await self.repository.db.commit()
-            return update_user
+            await self.user_repository.db.commit()
+            return updated_user
         except IntegrityError:
-            await self.repository.db.rollback()
+            await self.user_repository.db.rollback()
             raise HTTPException(status_code=400, detail="Error updating user")
 
     async def change_password_user(self, user_id: int, passwords: ChangePasswordSchema) -> str:
         """
-        Modifying a user's password in the repository.
+        Change a user's password.
+
         Args:
-            user_id (int): The ID of the user to modify.:
-            passwords(ChangePasswordSchema): The schema containing fields to modify an instance of user's password.:
+            user_id (int): The ID of the user.
+            passwords (ChangePasswordSchema): Password change data.
+
+        Raises:
+            HTTPException:
+                - If the user is not found.
+                - If passwords do not match.
+                - If the old password is incorrect.
+                - If an error occurs during update.
 
         Returns:
-
+            str: Success message.
         """
-        user = await self.repository.get_by_id(user_id)
+        user = await self.user_repository.get_by_id(user_id)
         dataform = dict()
 
-        if not user:
+        if user is None:
             raise HTTPException(status_code=404, detail="User not found")
 
         if passwords.confirm_password != passwords.new_password:
@@ -174,26 +192,37 @@ class UserService:
         dataform['password_hash'] = hashed_password
 
         try:
-            await self.repository.update(user_id, dataform)
+            await self.user_repository.update(user_id, dataform)
+            await self.user_repository.db.commit()
             return "Password changed successfully"
-        except HTTPException:
-            raise
         except Exception:
+            await self.user_repository.db.rollback()
             raise HTTPException(status_code=400, detail="Error updating user")
 
-    async def delete_user(self, user_id: int) -> None:
+    async def delete_user(self, user_id: int) -> dict:
         """
-        Delete an existing user in the repository.
+        Soft delete a user.
+
+        Sets `is_active` to False and records deletion timestamp.
+
         Args:
-            user_id:
+            user_id (int): The ID of the user to delete.
+
+        Raises:
+            HTTPException:
+                - If the user is not found.
+                - If an error occurs during deletion.
 
         Returns:
-
+            dict: Confirmation message.
         """
-        user = await self.repository.get_by_id(user_id)
-        if not user:
+        user = await self.user_repository.get_by_id(user_id)
+        if user is None:
             raise HTTPException(status_code=404, detail="User not found")
         try:
-            await self.repository.delete(user_id)
+            await self.user_repository.delete(user_id)
+            await self.user_repository.db.commit()
+            return {"message": "User deleted successfully"}
         except Exception:
+            await self.user_repository.db.rollback()
             raise HTTPException(status_code=400, detail="Error deleting user")
