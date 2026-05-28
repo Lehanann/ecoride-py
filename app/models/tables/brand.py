@@ -14,7 +14,8 @@ class Brand(Base):
         updated_at (datetime): The date when the brand was last updated. Managed by the db. Ex.: 2020-04-01T12:00:00Z
 
     Relationships:
-        cars: All cars associated to the brand.
+        cars: All cars associated with the brand.
+
     Notes:
         - The name contains 50 characters max.
         - The name is required.
