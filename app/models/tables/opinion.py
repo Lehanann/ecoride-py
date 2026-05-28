@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, Text, ForeignKey, DateTime, text
+from sqlalchemy import Integer, Text, ForeignKey, DateTime, text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ENUM
 from databases.postgresql import Base
@@ -18,13 +18,18 @@ class Opinion(Base):
         author_id (int): Identifier of the user who wrote the opinion (passenger). Example: 135
         target_id (int): Identifier of the user being reviewed (driver). Example: 12
         validator_id (int | None): Identifier of the employee who validated the opinion. Example: 232
-        validated_at (datetime | None): Timestamp when the opinion was validated. Example: 2020-04-04 10:35:20
+        validated_at (datetime | None): Timestamp when the opinion was validated. Example: 2019-04-01T12:00:00Z
+        created_at (datetime): The date when the opinion was created. Managed by the db. Ex.: 2019-04-01T12:00:00Z
 
     Relationships:
         author: The user who created the opinion (passenger).
         target: The user who receives the opinion (driver).
         validator: The employee who reviewed and validated the opinion.
         carpooling: The carpooling related to the opinion.
+
+    Notes:
+        - comment, note, status, carpooling_id, author_id, target_id are required.
+        - note must be between 1 and 5
     """
     __tablename__ = 'opinions'
 
@@ -32,7 +37,7 @@ class Opinion(Base):
     comment: Mapped[str] = mapped_column(Text, nullable=False)
     note: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[OpinionStatusEnum] = mapped_column(ENUM(OpinionStatusEnum,
-                                                           name="opinion_status_enum",
+                                                           name="opinion_status",
                                                            create_type=False,
                                                            ),
                                                       nullable=False,
@@ -41,7 +46,8 @@ class Opinion(Base):
     author_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     target_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     validator_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"),nullable=True)
-    validated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     author = relationship("User", foreign_keys=[author_id], back_populates="opinions_given")
     target = relationship("User", foreign_keys=[target_id], back_populates="opinions_received")
