@@ -1,15 +1,17 @@
 from datetime import date
 from fastapi import HTTPException, status
+from psycopg import IntegrityError
 from app.models.tables.carpooling import Carpooling
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.carpooling_schema import CarpoolingCreate, CarpoolingUpdate,CarpoolingStatusUpdate
 from app.utils.carpooling_status_enum import CarpoolingStatusEnum
+from app.services.transaction_service import TransactionService
 
 
 class CarpoolingService:
 
-    def __init__(self, carpooling_repository: CarpoolingRepository, user_repository: UserRepository) -> None:
+    def __init__(self, carpooling_repository: CarpoolingRepository, user_repository: UserRepository, transaction_service: TransactionService) -> None:
         """
         Initialize the carpooling service.
 
@@ -19,6 +21,7 @@ class CarpoolingService:
         """
         self.carpooling_repository = carpooling_repository
         self.user_repository = user_repository
+        self.transaction_service = transaction_service
 
     async def get_carpooling_by_id(self, carpooling_id: int) -> Carpooling:
         """
@@ -262,7 +265,7 @@ class CarpoolingService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         # check that carpooling exists
-        if not carpooling:
+        if carpooling is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         # Checks that the user has the 'driver' role
@@ -300,13 +303,25 @@ class CarpoolingService:
                 new_status = CarpoolingStatusEnum.cancelled
             else:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         try:
+            old_status = carpooling.status
             update_carpooling = await self.carpooling_repository.update_status(carpooling_id, new_status)
             if update_carpooling is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+            if old_status != CarpoolingStatusEnum.finished and new_status == CarpoolingStatusEnum.finished:
+                await self.transaction_service.generate_transactions(carpooling.id)
+
+            await self.carpooling_repository.db.commit()
             return update_carpooling
+
+        except IntegrityError:
+            await self.carpooling_repository.db.rollback()
+            raise HTTPException(status_code=400, detail="Database integrity error")
+
         except Exception:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+            await self.carpooling_repository.db.rollback()
+            raise HTTPException(status_code=500, detail="Internal server error")
