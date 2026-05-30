@@ -30,7 +30,7 @@ CREATE TABLE ecoride.users(
 -- Table brands
 CREATE TABLE ecoride.brands(
    id SERIAL PRIMARY KEY,
-   name VARCHAR(50) NOT NULL,
+   name VARCHAR(50) NOT NULL UNIQUE,
    created_at TIMESTAMPTZ DEFAULT NOW(),
    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
