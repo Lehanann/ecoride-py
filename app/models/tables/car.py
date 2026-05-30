@@ -30,7 +30,6 @@ class Car(Base):
         - The registration must not exceed 15 characters.
         - The color must not exceed 100 characters.
         - All user-provided fields are required.
-
     """
 
     __tablename__ = 'cars'

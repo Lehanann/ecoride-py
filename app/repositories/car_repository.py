@@ -10,6 +10,7 @@ class CarRepository:
     def __init__(self, db: AsyncSession) -> None:
         """
         Initialize the Car repository with database session.
+
         Args:
             db (AsyncSession): Asynchronous database session.
         """
@@ -17,11 +18,13 @@ class CarRepository:
 
     async def get_by_id(self, car_id: int) -> Car | None:
         """
-        Gets a car by its ID.
+        Retrieve a car instance by its ID.
+
         Args:
-            car_id:
+            car_id (int): The unique identifier of the car.
+
         Returns:
-            car (Car): Return the car instance by its ID, otherwise None if not found.
+            Car | None: The car instance if found, otherwise None.
 
         """
         return await self.db.get(Car, car_id)
@@ -30,42 +33,41 @@ class CarRepository:
     async def get_all_cars_by_user(self, user_id: int) -> list[Car]:
         """
         Retrieves all instances of car by their user ID.
+
         Args:
-            user_id (int): The user ID.
+            user_id (int): The unique identifier of the user.
 
         Returns:
-            list: List of car instances by their user ID.
+            list[Car]: List of car instances by their user ID.
         """
         return list(await self.db.scalars(select(Car).where(Car.user_id == user_id)))
 
     async def create(self, data: dict) -> Car:
         """
         Creates a new car instance.
+
         Args:
             data (dict): Schema containing fields to create the car instance.
 
         Returns:
-            car (Car): The new car instance.
+            Car: The new car instance.
         """
         car = Car(**data)
         self.db.add(car)
-        await self.db.commit()
-        await self.db.refresh(car)
         return car
 
-    async def delete(self, car_id: int) -> bool:
+    async def delete(self, car_id: int) -> Car | None:
         """
         Deletes a car by its ID.
+
         Args:
-            car_id (int): The ID of the car to delete.
+            car_id (int): The unique identifier of the car.
 
         Returns:
-            True if the car was successfully deleted, False otherwise.
+            Car | None: The deleted car instance if found, otherwise None.
         """
-        car = await self.db.get(Car, car_id)
+        car = await self.get_by_id(car_id)
         if car is None:
-            return False
-
+            return None
         await self.db.delete(car)
-        await self.db.commit()
-        return True
+        return car
