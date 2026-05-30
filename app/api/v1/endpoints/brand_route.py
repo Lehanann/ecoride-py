@@ -5,7 +5,7 @@ from app.services.brand_service import BrandService
 from app.repositories.brand_repository import BrandRepository
 from app.schemas.brand_schema import BrandCreate, BrandUpdate, BrandRead
 
-router = APIRouter(prefix="/brand", tags=["brand"])
+router = APIRouter(prefix="/brands", tags=["brands"])
 
 def get_service_brand(db: AsyncSession = Depends(get_session)) -> BrandService:
     return BrandService(BrandRepository(db))
@@ -13,13 +13,13 @@ def get_service_brand(db: AsyncSession = Depends(get_session)) -> BrandService:
 @router.get("/", response_model=list[BrandRead])
 async def list_brands(service: BrandService = Depends(get_service_brand)):
     """
-     Retrieves a list of all brands from database.
+    Retrieves all brands.
 
     This endpoint fetches all brands stored in the database and returns
     them in the format specified by the BrandRead schema.
 
     Args:
-        service (BrandService, optional): The service layer for handling brand-related operations.
+        service (BrandService): The service layer for handling brand-related operations.
         This is injected automatically using Depends(get_service_brand).
 
     Returns:
@@ -31,30 +31,31 @@ async def list_brands(service: BrandService = Depends(get_service_brand)):
 @router.get("/{brand_id}", response_model=BrandRead)
 async def get_brand(brand_id: int, service: BrandService = Depends(get_service_brand)):
     """
-    Retrieve brand by its ID from the database.
+    Retrieve a brand by its ID.
 
     This endpoint fetches a brand by its ID stored in the database and returns
-    them in the format specified by the `BrandRead` schema.
+    it in the format specified by the `BrandRead` schema.
 
     Args:
         brand_id (int): Unique identifier of the brand
-        service (BrandService, optional): The service layer for handling brand-related operations.
-                                        This is injected automatically using `Depends(get_brand_service)`.
+        service (BrandService): The service layer for handling brand-related operations.
+        This is injected automatically using `Depends(get_service_brand)`.
 
     Returns:
-        brand (BrandRead): A brand represented by the `BrandRead`
-            schema, which includes relevant brand details such as name and ID.
+        BrandRead: A brand represented by the `BrandRead`
+        schema, which includes relevant brand details such as name and ID.
     """
     return await service.get_by_id(brand_id)
 
 @router.post("/", response_model=dict[str,str], status_code=status.HTTP_201_CREATED)
 async def create(data: BrandCreate, service: BrandService = Depends(get_service_brand)):
     """
-    Creates a new brand in the database.
+    Creates a new brand.
+
     Args:
-        data (BrandCreate): The schema of the brand to create.
-        service (BrandService, optional): The service layer for handling brand-related operations.
-                                        This is injected automatically using `Depends(get_brand_service)`.
+        data (BrandCreate): The data required to create a brand.
+        service (BrandService): The service layer for handling brand-related operations.
+        This is injected automatically using `Depends(get_service_brand)`.
 
     Returns:
         dict[str,str]: A dictionary containing a success message if the brand was created successfully.
@@ -62,17 +63,20 @@ async def create(data: BrandCreate, service: BrandService = Depends(get_service_
     await service.create(data)
     return {"message": "Brand created successfully."}
 
-@router.patch('/{brand_id}', response_model=dict[str,str], status_code=status.HTTP_200_OK)
+@router.patch("/{brand_id}", response_model=dict[str,str], status_code=status.HTTP_200_OK)
 async def update(brand_id: int, data: BrandUpdate, service: BrandService = Depends(get_service_brand)):
     """
     Update a brand by its ID.
+
     Args:
         brand_id (int): Unique identifier of the brand.
         data (BrandUpdate): The data used to update the brand.
-        service (BrandService, optional): The service layer for handling brand-related operations.
-                                        This is injected automatically using `Depends(get_brand_service)`.
+        service (BrandService): The service layer for handling brand-related operations.
+        This is injected automatically using `Depends(get_service_brand)`.
+
     Raises:
-        HTTPException: if the name already exist or if the brand is not found by its ID.
+        HTTPException: if the name already exists or if the brand is not found by its ID.
+
     Returns:
         dict[str,str]: A dictionary containing a success message if the brand was updated successfully.
     """

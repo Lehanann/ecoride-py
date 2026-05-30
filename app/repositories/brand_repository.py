@@ -17,37 +17,36 @@ class BrandRepository:
 
     async def get_by_id(self, brand_id: int) -> Brand | None:
         """
-       Retrieve a brand instance by its ID
+        Retrieve a brand instance by its ID
 
         Args:
-            brand_id: The unique identifier of the brand.
+            brand_id (int): The unique identifier of the brand.
 
         Returns:
             Brand | None: The brand instance if found, otherwise None.
-
         """
         return await self.db.get(Brand, brand_id)
 
 
     async def get_by_name(self, name: str) -> Brand | None:
         """
-         Retrieve a brand instance by its name.
+        Retrieve a brand instance by its name.
 
         Args:
-            name (str): The name of brand.
+            name (str): The name of the brand.
 
         Returns:
              Brand | None: The brand instance if found, otherwise None.
         """
-        result = await self.db.execute(select(Brand).where(Brand.name == name))
-        return result.scalar_one_or_none()
+        result = await self.db.scalars(select(Brand).where(Brand.name == name))
+        return result.first()
 
     async def get_all(self) -> list[Brand]:
         """
         Retrieve all instances of brand from the database.
 
         Returns:
-            list[Brand]: The List of all brand's instances.
+            list[Brand]: The list of all brand instances.
         """
         return list(await self.db.scalars(select(Brand)))
 
@@ -59,22 +58,22 @@ class BrandRepository:
             data (dict): Schema containing fields to create the brand instance.
 
         Returns:
-             brand(Brand): The new brand instance.
+             Brand: The new brand instance.
         """
         brand = Brand(**data)
         self.db.add(brand)
         return brand
 
-    async def update(self, brand_id: int, data: dict ) -> Brand | None:
+    async def update(self, brand_id: int, data: dict) -> Brand | None:
         """
         Update an existing brand instance by its ID.
 
-        Args
-            brand_id(int): The brand ID to update.
-            data (BrandUpdate): Schema containing fields to update the brand instance.
+        Args:
+            brand_id (int): The brand ID to update.
+            data (dict): Schema containing fields to update the brand instance.
 
         Returns:
-             brand(Brand): The updated brand instance.
+             Brand | None: The updated brand instance if found, otherwise None.
         """
         brand = await self.get_by_id(brand_id)
         if brand is None:
@@ -89,13 +88,13 @@ class BrandRepository:
         Delete an existing brand instance by its ID.
 
         Args:
-            brand_id(int): The brand ID to delete.
+            brand_id (int): The brand ID to delete.
 
         Returns:
-             bool: True if the brand instance was successfully deleted, False otherwise.
+             Brand | None: The deleted brand instance if found, otherwise None.
         """
-        brand = await self.get_by_id(brand_id)
-        if brand is None:
+        deleted_brand = await self.get_by_id(brand_id)
+        if deleted_brand is None:
             return None
-        await self.db.delete(brand)
-        return brand
+        await self.db.delete(deleted_brand)
+        return deleted_brand

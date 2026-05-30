@@ -19,16 +19,17 @@ class BrandService:
 
     async def get_by_id(self, brand_id: int) -> Brand:
         """
-         Retrieve a brand by its id.
+        Retrieve a brand by its id.
 
         Args:
-            brand_id(int): The ID of the brand.
+            brand_id (int): The ID of the brand.
 
         Raises:
-            HTTPException: if the ID of brand is not found.
+            HTTPException:
+                - if brand is not found.
 
         Returns:
-             brand(Brand): The brand with the given ID.
+             Brand: The brand with the given ID.
         """
         brand = await self.repository.get_by_id(brand_id)
         if brand is None:
@@ -40,13 +41,14 @@ class BrandService:
         Retrieve a brand by its name.
 
         Args:
-            name str: The name of the brand.
+            name (str): The name of the brand.
 
         Raises:
-            HTTPException: if the name is not found.
+            HTTPException:
+                - if the name is not found.
 
         Returns:
-            brand(Brand): The brand with the given name.
+            Brand: The brand with the given name.
         """
         brand = await self.repository.get_by_name(name)
         if brand is None:
@@ -58,7 +60,7 @@ class BrandService:
         Retrieve all brands.
 
         Returns:
-            list[Brand]: The list of brands.
+            list[Brand]: The list of the brands.
         """
         return await self.repository.get_all()
 
@@ -69,20 +71,24 @@ class BrandService:
         Args:
             data (BrandCreate):  The data required to create a brand.
 
+        Raises:
+            HTTPException:
+                - if the data is not valid.
+
         Returns:
-            brand(Brand): The newly created brand.
+            Brand: The newly created brand.
         """
-        dataform = {
+        brand_data = {
             "name": data.name,
         }
 
         try:
-            brand = await self.repository.create(dataform)
+            new_brand = await self.repository.create(brand_data)
             await self.repository.db.commit()
-            return brand
+            return new_brand
         except Exception:
             await self.repository.db.rollback()
-            raise HTTPException(status_code=400, detail="Error creating Brand")
+            raise HTTPException(status_code=400, detail="Error creating brand")
 
     async def update(self, brand_id: int, data: BrandUpdate) -> Brand:
         """
@@ -93,20 +99,45 @@ class BrandService:
             data (BrandUpdate): The fields to update.
 
         Raises:
-            - HTTPException: if the ID of brand is not found.
-            - HTTPException: if the ID of brand is not updated.
+            - HTTPException: if the brand is not found.
+            - HTTPException: if an error occurs while updating the brand
 
         Returns:
-            update_brand(Brand): The updated brand with the given ID.
+            Brand: The updated brand with the given ID.
         """
-        dataform = data.model_dump(exclude_unset=True)
+        brand_data = data.model_dump(exclude_unset=True)
 
         try:
-            update_brand = await self.repository.update(brand_id, dataform)
-            if update_brand is None:
+            updated_brand = await self.repository.update(brand_id, brand_data)
+            if updated_brand is None:
                 raise HTTPException(status_code=404, detail="Brand not found")
             await self.repository.db.commit()
-            return update_brand
+            return updated_brand
         except Exception:
             await self.repository.db.rollback()
             raise HTTPException(status_code=400, detail="Error updating brand")
+
+    async def delete(self, brand_id: int) -> Brand:
+        """
+        Delete a brand.
+
+        Args:
+            brand_id (int): The unique identifier of the brand.
+
+        Raises:
+            - HTTPException: if brand is not found.
+            - HTTPException: if an error occurs while deleting the brand.
+
+        Returns:
+            Brand: The deleted brand with the given ID.
+        """
+        deleted_brand = await self.repository.get_by_id(brand_id)
+        if deleted_brand is None:
+            raise HTTPException(status_code=404, detail="Brand not found")
+        try:
+            await self.repository.delete(brand_id)
+            await self.repository.db.commit()
+            return deleted_brand
+        except Exception:
+            await self.repository.db.rollback()
+            raise HTTPException(status_code=400, detail="Error deleting brand")

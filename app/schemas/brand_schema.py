@@ -5,13 +5,13 @@ class BrandBase(BaseModel):
     Base schema for the brand, shared by create, update, and read operations and inherited by other schemas.
 
     Attributes:
-        name(str): The name of the brand.
+        name (str): The name of the brand.
     Notes:
         - The name of the brand must be unique.
-        - the name must not exceed 50 characters.
-        - The name is required
+        - The name must not exceed 50 characters.
+        - The name is required.
     """
-    name: str = Field(...,max_length=50, description="The name of the brand.")
+    name: str = Field(..., max_length=50, description="The name of the brand.")
 
 class BrandCreate(BrandBase):
     """
@@ -29,22 +29,23 @@ class BrandUpdate(BaseModel):
     Only fields provided in the request will be updated.
 
     Attributes:
-        name(str | None): The new name of the brand.
+        name (str | None): The new name of the brand.
 
     Notes:
         - All fields are optional.
         - Only provided fields will be updated.
     """
-    name: str | None = Field(None,max_length=50, description="The name of the brand.")
+    name: str | None = Field(None, max_length=50, description="The name of the brand.")
 
 class BrandRead(BrandBase):
     """
-        Schema used when reading an existing brand from the database.
-        Inherits all fields from BrandBase schema.
+    Schema used when reading an existing brand from the database.
 
-        Attributes:
-            id (int): The id of the user.
+    Inherits all fields from BrandBase schema.
+
+    Attributes:
+        id (int): The id of the brand.
     """
-    id: int = Field(..., description="The id of the user.")
+    id: int = Field(..., description="The id of the brand.")
 
     model_config = ConfigDict(from_attributes=True)

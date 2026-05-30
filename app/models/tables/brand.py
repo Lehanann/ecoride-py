@@ -5,7 +5,7 @@ from databases.postgresql import Base
 
 class Brand(Base):
     """
-    Represent a brand stored in the database.
+    Represents a brand stored in the database.
 
     Attributes:
         id (int): The id of the brand stored in the database. Ex.: 1
@@ -17,13 +17,14 @@ class Brand(Base):
         cars: All cars associated with the brand.
 
     Notes:
-        - The name contains 50 characters max.
+        - The name must not exceed 50 characters.
         - The name is required.
+        - The name should be unique.
     """
     __tablename__ = 'brands'
 
-    id: Mapped[int]= mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str]= mapped_column(String(50), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
