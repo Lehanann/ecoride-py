@@ -12,15 +12,15 @@ class Carpooling(Base):
 
     Attributes:
         id (int): The ID of the carpooling. Ex.: 1
-        departure_date (date): The date of the departure of the carpooling. Ex.: '2020-04-01' YYYY-MM-DD
-        departure_time (time): The time of the departure of the carpooling. Ex.: '07:00'
-        departure_location (str): The location of the departure of the carpooling. Ex.: '15 av. Mystery 69999 Les-Orchidés'
-        end_date (date): The date of the end of the carpooling. Ex.: '2020-04-01' YYYY-MM-DD
-        end_time (time): The time of the end of the carpooling. Ex.: '07:40'
-        end_location (str): The location of the end of the carpooling. Ex.: '39 Bis impasse des Secrets 69899 Le Bois-Enchanté'
+        departure_date (date): The departure date. Ex.: '2020-04-01' YYYY-MM-DD
+        departure_time (time): The departure time. Ex.: '07:00'
+        departure_location (str): The departure location. Ex.: '15 av. Mystery 69999 Les-Orchidés'
+        end_date (date): The end date. Ex.: '2020-04-01' YYYY-MM-DD
+        end_time (time): The end time. Ex.: '07:40'
+        end_location (str): The end location. Ex.: '39 Bis impasse des Secrets 69899 Le Bois-Enchanté'
         status (CarpoolingStatusEnum): The status of the carpooling initialized to draft by the db. Ex.: 'draft'
         place_number (int): Number of available seats. Ex.: 2
-        price (Decimal): The price of the carpooling, minimum 2 credits. Ex.: 4
+        price (Decimal): The price of the carpooling. Ex.: 4
         car_id (int): The ID of the car used for the carpooling. Ex.: 12
         created_at (datetime): The date when the carpooling was created. Managed by the db. Ex.: 2019-04-01T12:00:00Z
         updated_at (datetime): The date when the carpooling was last updated. Managed by the db. Ex.: 2020-04-01T12:00:00Z
@@ -29,10 +29,12 @@ class Carpooling(Base):
         car: The car associated with the carpooling.
         reservations: Reservations associated with the carpooling.
         opinions: The opinions associated with the carpooling.
+
     Notes:
         - All user-provided fields are required.
         - departure_location and end_location must not exceed 200 characters.
-        - price must not exceed 9999.99
+        - The price must be greater than 2 credits.
+        - The maximum value depends on the database constraint (Numeric(6,2)).
     """
     __tablename__ = "carpoolings"
 
@@ -49,7 +51,7 @@ class Carpooling(Base):
                                                          nullable=False,
                                                          server_default=text("'draft'"))
     place_number: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    price: Mapped[Decimal] = mapped_column(Numeric(6,2), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
     car_id: Mapped[int] = mapped_column(Integer, ForeignKey('cars.id'), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

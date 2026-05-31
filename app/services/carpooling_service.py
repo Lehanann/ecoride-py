@@ -1,6 +1,5 @@
 from datetime import date
 from fastapi import HTTPException, status
-from psycopg import IntegrityError
 from app.models.tables.carpooling import Carpooling
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.repositories.user_repository import UserRepository
@@ -10,14 +9,21 @@ from app.services.transaction_service import TransactionService
 
 
 class CarpoolingService:
-
-    def __init__(self, carpooling_repository: CarpoolingRepository, user_repository: UserRepository, transaction_service: TransactionService) -> None:
+    """
+     Carpooling service that performs operations on the carpooling repository such as reading, creating, updating carpoolings.
+    """
+    def __init__(self,
+                 carpooling_repository: CarpoolingRepository,
+                 user_repository: UserRepository,
+                 transaction_service: TransactionService
+                 ) -> None:
         """
         Initialize the carpooling service.
 
         Args:
-            carpooling_repository:
-            user_repository:
+            carpooling_repository (CarpoolingRepository): The repository of the carpooling.
+            user_repository (UserRepository): The repository of the user.
+            transaction_service (TransactionService): The service of the transaction.
         """
         self.carpooling_repository = carpooling_repository
         self.user_repository = user_repository
@@ -30,14 +36,15 @@ class CarpoolingService:
         Args:
             carpooling_id (int): The ID of the carpooling to retrieve.
 
+        Raises:
+            HTTPException:
+                - if carpooling is not found.
+
         Returns:
             Carpooling: A carpooling matching the given ID.
-
-        Raises:
-            HTTPException: if carpooling is not found.
         """
         carpooling = await self.carpooling_repository.get_by_id(carpooling_id)
-        if not carpooling:
+        if carpooling is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,)
         return carpooling
 
@@ -54,12 +61,12 @@ class CarpoolingService:
         Args:
             carpooling_id (int): The ID of the carpooling to retrieve.
 
+        Raises:
+            HTTPException:
+                - If the carpooling is not found or is not publicly visible.
+
         Returns:
             Carpooling: The carpooling matching the given ID.
-
-        Raises:
-            HTTPException: If the carpooling is not found or is not publicly visible.
-
         """
         carpooling = await self.get_carpooling_by_id(carpooling_id)
 
@@ -107,14 +114,15 @@ class CarpoolingService:
             carpooling (CarpoolingCreate): Schema containing the fields required to create a carpooling.
             user_id (int): The ID of the authenticated user creating the carpooling.
 
+        Raises:
+            HTTPException:
+                - If business rules are violated or required resources are not found.
+
         Returns:
             Carpooling: The newly created carpooling instance.
-
-        Raises:
-            HTTPException: If business rules are violated or required resources are not found.
         """
         user = await self.user_repository.get_by_id(user_id)
-        if not user:
+        if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         roles = user.roles
@@ -132,7 +140,7 @@ class CarpoolingService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
         if carpooling.departure_time > carpooling.end_time:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-        if carpooling.price < 2:
+        if carpooling.price <= 2:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
         user_car_ids = []
@@ -142,7 +150,7 @@ class CarpoolingService:
         if carpooling.car_id not in user_car_ids:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
-        dataform = {
+        carpooling_data = {
             "departure_date": carpooling.departure_date,
             "departure_time": carpooling.departure_time,
             "departure_location": carpooling.departure_location,
@@ -155,8 +163,11 @@ class CarpoolingService:
         }
 
         try:
-            return await self.carpooling_repository.create(dataform)
+            new_carpooling = await self.carpooling_repository.create(carpooling_data)
+            await self.carpooling_repository.db.commit()
+            return new_carpooling
         except Exception:
+            await self.carpooling_repository.db.rollback()
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     async def update_carpooling(self, carpooling_id: int, data: CarpoolingUpdate, user_id: int) -> Carpooling:
@@ -178,19 +189,19 @@ class CarpoolingService:
             data (CarpoolingUpdate): Schema containing the fields to update.
             user_id (int): The ID of the authenticated user performing the update.
 
+        Raises:
+            HTTPException:
+                - If the user or carpooling does not exist, if the user is not allowed to modify the carpooling,
+                or if a conflict occurs during the update.
+
         Returns:
             Carpooling: The updated carpooling instance.
-
-        Raises:
-            HTTPException: If the user or carpooling does not exist,
-                if the user is not allowed to modify the carpooling,
-                or if a conflict occurs during the update.
         """
         user = await self.user_repository.get_by_id(user_id)
         carpooling = await self.carpooling_repository.get_by_id(carpooling_id)
 
         # check that user exists
-        if not user:
+        if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         # Collect all car IDs owned by the user
@@ -199,7 +210,7 @@ class CarpoolingService:
             user_car_ids.append(car.id)
 
         # check that carpooling exists
-        if not carpooling:
+        if carpooling is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         # Checks that the user has the 'driver' role
@@ -214,21 +225,23 @@ class CarpoolingService:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
         # Extract only fields provided in the update payload
-        dataform = data.model_dump(exclude_unset=True)
+        carpooling_data = data.model_dump(exclude_unset=True)
 
         # Determine the final car ID (updated or original)
-        final_car_id = dataform.get("car_id", carpooling.car_id)
+        final_car_id = carpooling_data.get("car_id", carpooling.car_id)
 
         # Ensure the car used by the carpooling belongs to the user
         if final_car_id not in user_car_ids:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
         try:
-            update_carpooling = await self.carpooling_repository.update(carpooling_id, dataform)
-            if update_carpooling is None:
+            updated_carpooling = await self.carpooling_repository.update(carpooling_id, carpooling_data)
+            if updated_carpooling is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-            return update_carpooling
+            await self.carpooling_repository.db.commit()
+            return updated_carpooling
         except Exception:
+            await self.carpooling_repository.db.rollback()
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     async def update_status_carpooling(self, carpooling_id: int, data: CarpoolingStatusUpdate, user_id: int) -> Carpooling:
@@ -249,19 +262,19 @@ class CarpoolingService:
             data (CarpoolingStatusUpdate): Schema containing the field status to update.
             user_id (int): The ID of the authenticated user performing the update.
 
+        Raises:
+            HTTPException:
+                - If the user or carpooling does not exist, if the user is not allowed to modify the carpooling,
+                or if a conflict occurs during the update.
+
         Returns:
             Carpooling: The updated carpooling instance.
-
-        Raises:
-            HTTPException: If the user or carpooling does not exist,
-                if the user is not allowed to modify the carpooling,
-                or if a conflict occurs during the update.
         """
         user = await self.user_repository.get_by_id(user_id)
         carpooling = await self.carpooling_repository.get_by_id(carpooling_id)
 
         # check that user exists
-        if not user:
+        if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         # check that carpooling exists
@@ -309,18 +322,14 @@ class CarpoolingService:
 
         try:
             old_status = carpooling.status
-            update_carpooling = await self.carpooling_repository.update_status(carpooling_id, new_status)
-            if update_carpooling is None:
+            updated_carpooling = await self.carpooling_repository.update_status(carpooling_id, new_status)
+            if updated_carpooling is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
             if old_status != CarpoolingStatusEnum.finished and new_status == CarpoolingStatusEnum.finished:
                 await self.transaction_service.generate_transactions(carpooling.id)
 
             await self.carpooling_repository.db.commit()
-            return update_carpooling
-
-        except IntegrityError:
-            await self.carpooling_repository.db.rollback()
-            raise HTTPException(status_code=400, detail="Database integrity error")
+            return updated_carpooling
 
         except Exception:
             await self.carpooling_repository.db.rollback()
