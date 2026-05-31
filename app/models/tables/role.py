@@ -5,10 +5,10 @@ from app.models.association_tables import role_user
 
 class Role(Base):
     """
-     Represents a user role in the application (e.g. admin, user, employee).
+     Represents a user role in the application (e.g. admin, passenger, driver, employee).
 
      Attributes:
-         id (int): The ID of the role.
+         id (int): The unique identifier of the role.
          name (str): The name of the role.
 
      Relationships:
@@ -24,4 +24,4 @@ class Role(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
 
-    users = relationship("User", secondary=role_user,back_populates="roles")
+    users = relationship("User", secondary=role_user, back_populates="roles")
