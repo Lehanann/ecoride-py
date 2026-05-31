@@ -47,7 +47,7 @@ class CarRepository:
         Creates a new car instance.
 
         Args:
-            data (dict): Schema containing fields to create the car instance.
+            data (dict): Schema containing fields to create the car.
 
         Returns:
             Car: The new car instance.
