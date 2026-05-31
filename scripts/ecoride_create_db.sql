@@ -87,7 +87,7 @@ CREATE TABLE ecoride.opinions(
    target_id INT NOT NULL REFERENCES ecoride.users(id), -- Cible de l'avis (chauffeur)
    validator_id INT REFERENCES ecoride.users(id),  -- Superviseur (NULL si non validé)
    validated_at TIMESTAMPTZ,  -- Date de validation (NULL si non validé)
-   created_at TIMESTAMPTZ DEFAULT NOW(),
+   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Table transactions (pour suivre les crédits)
