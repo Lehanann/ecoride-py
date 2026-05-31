@@ -7,15 +7,15 @@ from app.schemas.opinion_schema import OpinionCreate, OpinionRead, OpinionStatus
 from app.services.opinion_service import OpinionService
 from databases.postgresql import get_session
 
-router = APIRouter(prefix="/opinion", tags=["opinion"])
+router = APIRouter(prefix="/opinions", tags=["opinions"])
 
-def get_opinion_service( db: AsyncSession = Depends(get_session)) -> OpinionService:
+def get_service_opinion(db: AsyncSession = Depends(get_session)) -> OpinionService:
     """
     Provide an instance of OpinionService with injected repositories.
     """
     return OpinionService(OpinionRepository(db), UserRepository(db), CarpoolingRepository(db))
 
-def get_user_repository(db: AsyncSession = Depends(get_session)) -> UserRepository:
+def get_repository_user(db: AsyncSession = Depends(get_session)) -> UserRepository:
     """
     Provide an instance of UserRepository.
     """
@@ -24,8 +24,8 @@ def get_user_repository(db: AsyncSession = Depends(get_session)) -> UserReposito
 
 @router.get("/pending", response_model=list[OpinionRead])
 async def get_pending_opinions(request: Request,
-                               opinion_service: OpinionService = Depends(get_opinion_service),
-                               user_repository: UserRepository = Depends(get_user_repository)
+                               opinion_service: OpinionService = Depends(get_service_opinion),
+                               user_repository: UserRepository = Depends(get_repository_user)
                                ) -> list[OpinionRead]:
     """
     Retrieve all opinions awaiting validation.
@@ -34,11 +34,13 @@ async def get_pending_opinions(request: Request,
 
     Args:
         request (Request): Incoming request containing the authenticated user ID.
-        opinion_service (OpinionService): Service handling opinion-related operations.
+        opinion_service (OpinionService): The service layer for handling opinion-related operations.
+            This is injected automatically using Depends(get_service_opinion).
         user_repository (UserRepository): Repository used to retrieve user information.
+            This is injected automatically using Depends(get_repository_user).
 
     Returns:
-        list[OpinionRead]: List of pending opinions.
+        list[OpinionRead]: The list of pending opinions.
 
     Raises:
         HTTPException:
@@ -49,23 +51,24 @@ async def get_pending_opinions(request: Request,
 
     current_user = await user_repository.get_by_id(validator_id)
     if current_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     if not any(role.name in ["employee","admin"] for role in current_user.roles):
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
     return await opinion_service.get_pending_opinions()
 
 @router.get("/me", response_model=list[OpinionRead])
 async def get_driver_opinions(request: Request,
-                              opinion_service: OpinionService = Depends(get_opinion_service)
-                              )->list[OpinionRead]:
+                              opinion_service: OpinionService = Depends(get_service_opinion)
+                              ) -> list[OpinionRead]:
     """
     Retrieve all approved opinions received by the current user.
 
     Args:
         request (Request): Incoming request containing the authenticated user ID.
-        opinion_service (OpinionService): Service handling opinion-related operations.
+        opinion_service (OpinionService): The service layer for handling opinion-related operations.
+            This is injected automatically using Depends(get_service_opinion).
 
     Returns:
         list[OpinionRead]: List of approved opinions.
@@ -77,15 +80,16 @@ async def get_driver_opinions(request: Request,
 @router.post("/",response_model=OpinionRead, status_code=status.HTTP_201_CREATED)
 async def create_opinion(request: Request,
                          data: OpinionCreate,
-                         opinion_service: OpinionService = Depends(get_opinion_service)
+                         opinion_service: OpinionService = Depends(get_service_opinion)
                          ) -> OpinionRead:
     """
     Create a new opinion for a completed carpooling.
 
     Args:
         request (Request): Incoming request containing the authenticated user ID.
-        data (OpinionCreate): Data used to create the opinion.
-        opinion_service (OpinionService): Service handling opinion-related operations.
+        data (OpinionCreate): The data used to create the opinion.
+        opinion_service (OpinionService): The service layer for handling opinion-related operations.
+            This is injected automatically using Depends(get_service_opinion).
 
     Returns:
         OpinionRead: The created opinion.
@@ -98,7 +102,7 @@ async def create_opinion(request: Request,
 async def validate_opinion(request: Request,
                          opinion_id: int,
                          data: OpinionStatusUpdate,
-                         opinion_service: OpinionService = Depends(get_opinion_service)
+                         opinion_service: OpinionService = Depends(get_service_opinion)
                          ) -> OpinionRead:
     """
     Validate or reject an opinion.
@@ -107,7 +111,8 @@ async def validate_opinion(request: Request,
         request (Request): Incoming request containing the authenticated user ID.
         opinion_id (int): Identifier of the opinion.
         data (OpinionStatusUpdate): New status data for the opinion.
-        opinion_service (OpinionService): Service handling opinion-related operations.
+        opinion_service (OpinionService): The service layer for handling user-related operations.
+            This is injected automatically using Depends(get_service_opinion).
 
     Returns:
         OpinionRead: The updated opinion.

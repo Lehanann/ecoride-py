@@ -1,11 +1,10 @@
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from app.repositories.opinion_repository import OpinionRepository
-from psycopg import IntegrityError
 from app.repositories.user_repository import UserRepository
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.models.tables.opinion import Opinion
-from schemas.opinion_schema import OpinionCreate, OpinionStatusUpdate
+from app.schemas.opinion_schema import OpinionCreate, OpinionStatusUpdate
 from app.utils.opinion_status_enum import OpinionStatusEnum
 from app.utils.carpooling_status_enum import CarpoolingStatusEnum
 
@@ -17,6 +16,7 @@ class OpinionService:
     def __init__(self, opinion_repository: OpinionRepository, user_repository: UserRepository, carpooling_repository: CarpoolingRepository):
         """
         Initialize the service with required repositories.
+
         Args:
             opinion_repository (OpinionRepository): Repository for opinion data.
             user_repository (UserRepository): Repository for user data.
@@ -38,14 +38,16 @@ class OpinionService:
     async def get_opinions_for_driver(self, user_id: int) -> list[Opinion]:
         """
         Retrieve all approved opinions received by a driver.
+
         Args:
-            user_id (int): Identifier of the driver.
+            user_id (int): The unique identifier of the driver.
+
+        Raises:
+            HTTPException:
+                - If the user does not exist.
 
         Returns:
             list[Opinion]: List of approved opinions for the driver.
-
-        Raises:
-            HTTPException: If the user does not exist.
         """
         user = await self.user_repository.get_by_id(user_id)
         if user is None:
@@ -64,14 +66,15 @@ class OpinionService:
         - Ensures the author participated in the carpooling
 
         Args:
-            author_id (int): Identifier of the opinion author (passenger).
-            opinion (OpinionCreate): Data used to create the opinion.
+            author_id (int): The unique identifier of the opinion author (passenger).
+            opinion (OpinionCreate): The data used to create the opinion.
+
+        Raises:
+            HTTPException:
+                - If validation fails or a database error occurs.
 
         Returns:
             Opinion: The created opinion.
-
-        Raises:
-            HTTPException: If validation fails or a database error occurs.
         """
         author = await self.user_repository.get_by_id(author_id)
         if author is None:
@@ -86,12 +89,12 @@ class OpinionService:
         target_id = carpooling.car.user_id
 
         if author_id == target_id:
-            raise HTTPException(status_code=400, detail="You cannot review yourself")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot review yourself")
 
-        if author_id not in [p.user_id for p in carpooling.passengers]:
-            raise HTTPException(status_code=403, detail="User not part of this carpooling")
+        if author_id not in [p.user_id for p in carpooling.reservations]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User not part of this carpooling")
 
-        dataform = {
+        opinion_data = {
             "comment": opinion.comment,
             "note": opinion.note,
             "status": OpinionStatusEnum.pending,
@@ -100,10 +103,10 @@ class OpinionService:
             "target_id": target_id,
         }
         try:
-            opinion = await self.opinion_repository.create(dataform)
+            opinion = await self.opinion_repository.create(opinion_data)
             await self.opinion_repository.db.commit()
             return opinion
-        except IntegrityError:
+        except Exception:
             await self.opinion_repository.db.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
@@ -115,18 +118,18 @@ class OpinionService:
         The opinion must exist and be in a pending state.
 
         Args:
-            opinion_id (int): Identifier of the opinion.
-            opinion (OpinionStatusUpdate): Data containing the new status.
-            validator_id (int): Identifier of the employee validating the opinion.
-
-        Returns:
-            Opinion: The updated opinion.
+            opinion_id (int): The unique identifier of the opinion.
+            opinion (OpinionStatusUpdate): The data containing the new status.
+            validator_id (int): The unique identifier of the user validating the opinion.
 
         Raises:
             HTTPException:
                 - 404 if user or opinion is not found
                 - 403 if user is not authorized
-                - 400 if opinion is not in pending state or update fails
+                - 400 if opinion is not in pending state or update fails.
+
+        Returns:
+            Opinion: The updated opinion.
         """
         validator = await self.user_repository.get_by_id(validator_id)
 
@@ -162,13 +165,14 @@ class OpinionService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Opinion not updated")
             await self.opinion_repository.db.commit()
             return updated_opinion
-        except IntegrityError:
+        except Exception:
             await self.opinion_repository.db.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     async def get_rejected_opinions(self) -> list[Opinion]:
         """
         Retrieve all rejected opinions.
+
         Returns:
             list[Opinion]: List of rejected opinions.
         """

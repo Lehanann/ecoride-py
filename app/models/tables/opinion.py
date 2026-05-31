@@ -10,15 +10,15 @@ class Opinion(Base):
     Represents an opinion left by a passenger about a driver after a carpooling.
 
     Attributes:
-        id (int): Unique identifier of the opinion. Example: 1
-        comment (str): Textual feedback provided by the author. Example: "Driver was very friendly"
-        note (int): Rating given to the driver. Example: 4
-        status (OpinionStatusEnum): Current status of the opinion (pending, approved, rejected)
-        carpooling_id (int): Identifier of the related carpooling. Example: 5
-        author_id (int): Identifier of the user who wrote the opinion (passenger). Example: 135
-        target_id (int): Identifier of the user being reviewed (driver). Example: 12
-        validator_id (int | None): Identifier of the employee who validated the opinion. Example: 232
-        validated_at (datetime | None): Timestamp when the opinion was validated. Example: 2019-04-01T12:00:00Z
+        id (int): Unique identifier of the opinion. Ex.: 1
+        comment (str): Textual feedback provided by the author. Ex.: "Driver was very friendly"
+        note (int): Rating given to the driver. Ex.: 4
+        status (OpinionStatusEnum): Current status of the opinion (pending, approved, rejected). Ex.: 'pending'
+        carpooling_id (int): Identifier of the related carpooling. Ex.: 5
+        author_id (int): Identifier of the user who wrote the opinion (passenger). Ex.: 135
+        target_id (int): Identifier of the user being reviewed (driver). Ex.: 12
+        validator_id (int | None): Identifier of the employee who validated the opinion. Ex.: 232
+        validated_at (datetime | None): Timestamp when the opinion was validated. Ex.: 2019-04-01T12:00:00Z
         created_at (datetime): The date when the opinion was created. Managed by the db. Ex.: 2019-04-01T12:00:00Z
 
     Relationships:

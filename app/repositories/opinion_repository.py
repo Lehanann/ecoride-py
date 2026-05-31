@@ -20,11 +20,12 @@ class OpinionRepository:
     async def get_by_id(self, opinion_id: int) -> Opinion | None:
         """
         Retrieve an opinion by its ID.
+
         Args:
-            opinion_id (int): The opinion ID.
+            opinion_id (int): The unique identifier of opinion.
 
         Returns:
-            Opinion | None: The opinion if found, otherwise None.
+            Opinion | None: The opinion instance if found, otherwise None.
         """
         return await self.db.get(Opinion, opinion_id)
 
@@ -50,21 +51,22 @@ class OpinionRepository:
         """
         Retrieve all approved opinions received by a given user.
         Args:
-            user_id (int): identifier of the target user.
+            user_id (int): The unique identifier of the target user.
 
         Returns:
-            list[Opinion]: The list approved opinions for the user.
+            list[Opinion]: The list of approved opinions for the user.
         """
         return list(await self.db.scalars(select(Opinion)
-                                          .where(Opinion.target_id == user_id)
-                                          .where(Opinion.status == OpinionStatusEnum.approved)))
+                                          .where(Opinion.target_id == user_id,
+                                                 Opinion.status == OpinionStatusEnum.approved)
+                                          ))
 
     async def create(self, data: dict) -> Opinion:
         """
         Create a new opinion.
 
         Args:
-            data (dict): Data used to create the new opinion.
+            data (dict): The data used to create the new opinion.
 
         Returns:
             Opinion: The created opinion instance.
@@ -81,10 +83,11 @@ class OpinionRepository:
                             ) -> Opinion | None:
         """
         Update the status of an opinion after validation.
+
         Args:
             opinion_id (int): Identifier of the opinion.
             status (OpinionStatusEnum): New status (approved or rejected).
-            validator_id (int): Identifier of the employee validating the opinion.
+            validator_id (int): The unique identifier of the user validating the opinion.
             validated_at (datetime): Timestamp of the validation.
 
         Returns:
