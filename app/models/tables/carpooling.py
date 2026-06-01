@@ -62,3 +62,5 @@ class Carpooling(Base):
     reservations = relationship("Reservation", back_populates="carpooling")
     # Relation one-to-many with opinion Entity
     opinions = relationship("Opinion", back_populates="carpooling")
+    # Relation one-to-many with Transaction entity
+    transactions = relationship("Transaction", back_populates="carpooling")

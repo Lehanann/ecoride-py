@@ -73,3 +73,5 @@ class User(Base):
         foreign_keys="Opinion.validator_id",
         back_populates="validator"
     )
+    # Relation one-to-many with Transaction entity
+    transactions = relationship("Transaction", back_populates="user")
