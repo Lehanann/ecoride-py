@@ -13,9 +13,9 @@ class Transaction(Base):
     It can represent a payment, a commission, or a refund.
 
     Attributes:
-        id (int): The identifier of the transaction.
+        id (int): The unique identifier of the transaction.
         amount (Decimal): The amount of the transaction.
-        user_id (int): The user identifier of the transaction.
+        user_id (int): The identifier of the user associated with the transaction.
         carpooling_id (int): The carpooling identifier of the transaction.
         transaction_type (TransactionTypeEnum): The type of the transaction (payment, commission, refund).
         created_at (datetime): The date and time when the transaction was created. Managed by the db.
@@ -34,4 +34,9 @@ class Transaction(Base):
                                                            name='transaction_type',
                                                            create_type=False),
                                                       nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relation many-to-one with User entity
+    user = relationship("User", back_populates="transactions")
+    # Relation many-to-one with carpooling entity
+    carpooling = relationship("Carpooling", back_populates="transactions")

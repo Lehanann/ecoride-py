@@ -1,9 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.tables.transaction import Transaction
+from app.utils.transaction_type_enum import TransactionTypeEnum
 from decimal import Decimal
-from utils.transaction_type_enum import TransactionTypeEnum
-
 
 class TransactionRepository:
     """
@@ -21,8 +20,9 @@ class TransactionRepository:
     async def get_by_user_id(self, user_id: int) -> list[Transaction]:
         """
         Retrieve all transactions for a given user.
+
         Args:
-            user_id (int): The identifier of the user.
+            user_id (int): The unique identifier of the user.
 
         Returns:
             list[Transaction]: List of user transactions.
@@ -38,7 +38,7 @@ class TransactionRepository:
         Retrieve all transactions related to a carpooling.
 
         Args:
-            carpooling_id (int): Identifier of the carpooling.
+            carpooling_id (int): The unique identifier of the carpooling.
 
         Returns:
             list[Transaction]: List of transactions for the carpooling.
@@ -52,10 +52,11 @@ class TransactionRepository:
     async def create(self, user_id: int, amount: Decimal, carpooling_id: int, transaction_type: TransactionTypeEnum ) -> Transaction:
         """
         Create a new transaction.
+
         Args:
-            user_id (int): The identifier of the user.
+            user_id (int): The unique identifier of the user.
             amount (Decimal): The amount of the transaction.
-            carpooling_id (int): The identifier of the carpooling.
+            carpooling_id (int): The unique identifier of the carpooling.
             transaction_type (TransactionTypeEnum): The type of transaction.
 
         Returns:
@@ -69,4 +70,3 @@ class TransactionRepository:
         )
         self.db.add(transaction)
         return transaction
-
