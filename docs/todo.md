@@ -39,4 +39,4 @@
 ## 🟢 Nice to have
 - Improve docstrings consistency
 
-
+- [ ] Consider moving password validation to Pydantic schema for early validation
