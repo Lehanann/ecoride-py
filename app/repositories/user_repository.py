@@ -3,7 +3,6 @@ from sqlalchemy import select
 from app.models.tables.user import User
 from datetime import datetime, UTC
 
-
 class UserRepository:
     """
     User repository providing CRUD operations for a given SQLAlchemy model.
@@ -27,7 +26,9 @@ class UserRepository:
         Returns:
             User | None: The user instance if found, otherwise None.
         """
-        result = await self.db.execute(select(User).where(User.id == user_id).where(User.is_active == True))
+        result = await self.db.execute(select(User).where( User.id == user_id,
+                                                           User.is_active.is_(True))
+                                       )
         return result.scalars().one_or_none()
 
     async def get_by_email(self, email: str) -> User | None:
@@ -40,7 +41,9 @@ class UserRepository:
         Returns:
              User | None: The user instance if found, otherwise None.
         """
-        result = await self.db.execute(select(User).where(User.email == email).where(User.is_active == True))
+        result = await self.db.execute(select(User).where(User.email == email,
+                                                          User.is_active.is_(True))
+                                       )
         return result.scalars().one_or_none()
 
     async def get_by_username(self, username: str) -> User | None:
@@ -53,7 +56,9 @@ class UserRepository:
         Returns:
              User | None: The user instance if found, otherwise None.
         """
-        result = await self.db.execute(select(User).where(User.username == username).where(User.is_active == True))
+        result = await self.db.execute(select(User).where(User.username == username,
+                                                          User.is_active.is_(True))
+                                       )
         return result.scalars().one_or_none()
 
     async def get_all(self) -> list[User]:
@@ -63,7 +68,7 @@ class UserRepository:
         Returns:
             list[User]: The List of all user's instances.
         """
-        return list(await self.db.scalars(select(User).where(User.is_active == True)))
+        return list(await self.db.scalars(select(User).where(User.is_active.is_(True))))
 
     async def create(self, data: dict) -> User:
         """
@@ -73,7 +78,7 @@ class UserRepository:
             data (dict): Schema containing fields to create the user instance.
 
         Returns:
-             user(User): The new user instance.
+             user(User): The newly created user instance.
         """
         user = User(**data)
         self.db.add(user)
@@ -85,7 +90,7 @@ class UserRepository:
 
         Args
             user_id(int): The user ID to update.
-            data (UserUpdate): Schema containing fields to update the user instance.
+            data (dict): Fields to update the user instance.
 
         Returns:
              user(User): The updated user instance.

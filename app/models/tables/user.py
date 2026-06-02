@@ -12,7 +12,7 @@ class User(Base):
     Field is_active allows the soft delete of the user.
 
     Attributes:
-        id (int): The id of the user. Ex.: 1
+        id (int): The unique identifier of the user. Ex.: 1
         username (str): The username of the user. Ex.: 'jdoe'
         firstname (str): The first name of the user. Ex.: 'John'
         lastname (str): The last name of the user. Ex.: 'Doe'
@@ -22,7 +22,7 @@ class User(Base):
         address (str): The address of the user. Ex.: '24 rue de la République 75001 Paris'
         birth_date (date): Date of birth of the user. (YYYY-MM-DD) Ex: '1981-01-01'
         avatar_url (str): Path to the user's profile picture. Ex.: /storage/bb245fea5411zsz/e5rqd2d14.png
-        credit (Numeric): The credit of the user. Ex.: 20
+        credit (Numeric): The credit of the user. Ex.: 20.00
         created_at (datetime): The date when the user was created. Managed by the db.
         updated_at (datetime): The date when the user was last updated. Managed by the db.
         is_active (bool): Whether the user is active, default true. Ex.: True
@@ -49,25 +49,31 @@ class User(Base):
     address: Mapped[str | None] = mapped_column(String(250), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(254), nullable=True)
-    credit: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, server_default=text('20'))
+    credit: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, server_default=text('20.00'))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False,server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False,server_default=func.now())
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
     deleted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Relation one-to-many with Car entity.
     cars = relationship("Car", back_populates="user")
-    roles = relationship("Role", secondary=role_user,back_populates="users")
+    # Relation many-to-many with Role entity.
+    roles = relationship("Role", secondary=role_user, back_populates="users")
+    # Relation one-to-many with Reservation entity.
     reservations = relationship("Reservation", back_populates="user")
+    # Relation one-to-many with Opinion entity
     opinions_given = relationship(
         "Opinion",
         foreign_keys="Opinion.author_id",
         back_populates="author"
     )
+    # Relation one-to-many Opinion entity
     opinions_received = relationship(
         "Opinion",
         foreign_keys="Opinion.target_id",
         back_populates="target"
     )
+    # Relation one-to-many with Opinion entity
     opinions_validated = relationship(
         "Opinion",
         foreign_keys="Opinion.validator_id",

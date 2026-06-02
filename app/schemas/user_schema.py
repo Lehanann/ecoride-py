@@ -37,14 +37,15 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """
     Schema used to create a new user.
+
     Inherits all fields from UserBase schema.
 
     Attributes:
         password (str): The password of the user.
 
     Notes:
-        - The creating_password field is required must be at least 14 characters long and no more than 256 characters.
-        - confirm_password field is required, must be at least 14 characters long and no more than 256 characters.
+        - The password field is required and must be at least 14 characters long and no more than 256 characters.
+        - confirm_password field is required, must match the password.
     """
     password: str = Field(...,min_length=14, max_length=256, description="The user's password will be created and hashed.")
     confirm_password: str = Field(...,min_length=14, max_length=256, description="The confirm user's password will be created and hashed.")
@@ -54,7 +55,7 @@ class UserUpdate(BaseModel):
     """
     Schema for updating an existing user.
 
-    All fields are optional. Only provided fields will be updated.
+    Only provided fields will be updated.
     The `credit` field is intentionally excluded to prevent direct modifications.
 
     Attributes:
@@ -65,7 +66,7 @@ class UserUpdate(BaseModel):
         phone (str | None): New phone number.
         address (str | None): New address.
         birth_date (date | None): New date of birth.
-        avatar_url (str | none): New public URL of the user's photo.
+        avatar_url (str | None): New public URL of the user's photo.
 
     Notes:
         - All fields are optional.
@@ -78,12 +79,13 @@ class UserUpdate(BaseModel):
     phone: str | None = Field(None, max_length=10, description="The phone number of the user.")
     address: str | None = Field(None, max_length=250, description="The address of the user.")
     birth_date: date | None = Field(None, description="The date of birth of the user.")
-    avatar_url: str | None = Field(None,max_length=254, description="The public URL of the user's photo.")
+    avatar_url: str | None = Field(None, max_length=254, description="The public URL of the user's photo.")
     roles: list[str] | None = Field(None, min_length=1, description="The roles of the user.")
 
 class UserRead(UserBase):
     """
     Schema used when reading an existing user from the database.
+
     Inherits all fields from UserBase schema.
 
     Attributes:

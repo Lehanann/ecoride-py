@@ -8,7 +8,7 @@ from app.schemas.user_schema import UserCreate,UserUpdate,UserRead
 from app.schemas.change_password_schema import ChangePasswordSchema
 from datetime import date
 
-router = APIRouter(prefix="/user",tags=["user"])
+router = APIRouter(prefix="/users",tags=["users"])
 
 def get_service_user(db: AsyncSession = Depends(get_session)) -> UserService:
     return UserService(UserRepository(db), RoleRepository(db))
@@ -16,7 +16,7 @@ def get_service_user(db: AsyncSession = Depends(get_session)) -> UserService:
 @router.get("/",response_model=list[UserRead])
 async def list_users(service: UserService = Depends(get_service_user)):
     """
-    Retrieves a list of all users from database.
+    Retrieves a list of all users.
 
     This endpoint fetches all users stored in the database and returns
     them in the format specified by the UserRead schema.
@@ -32,9 +32,9 @@ async def list_users(service: UserService = Depends(get_service_user)):
     return await service.get_all()
 
 @router.get("/me",response_model=UserRead)
-async def get_user(request: Request, service: UserService = Depends(get_service_user)):
+async def get_me(request: Request, service: UserService = Depends(get_service_user)):
     """
-        Retrieve user by its ID from the database.
+        Retrieve the current authenticated user.
 
         This endpoint fetches a user by its ID stored in the database and returns
         them in the format specified by the `UserRead` schema.
@@ -65,18 +65,19 @@ async def create_user(
         avatar_file: UploadFile | None = File(None),
         service: UserService = Depends(get_service_user)) -> dict[str,str]:
     """
-    Creates a new user in the database.
+    Creates a new user.
+
     Args:
-        username (str): The username of the user to create.:
-        email (str): The email of the user to create.:
-        firstname (str, optional): The first name of the user to create.:
-        lastname (str, optional): The last name of the user to create.:
-        phone (str, optional): The phone number of the user to create.:
-        address (str, optional): The address of the user to create.:
-        birth_date(date, optional): The birthdate of the user to create.:
-        password (str): The password of the user to create.:
-        confirm_password (str): The confirmation password of the user to create.:
-        avatar_file (UploadFile, optional): The file containing the avatar of the user to create.:
+        username (str): The username of the user.
+        email (str): The unique email of the user.
+        firstname (str, optional): The first name of the user.
+        lastname (str, optional): The last name of the user.
+        phone (str, optional): The phone number of the user.
+        address (str, optional): The address of the user.
+        birth_date(date, optional): The birthdate of the user.
+        password (str): The password of the user.
+        confirm_password (str): The confirmation password of the user.
+        avatar_file (UploadFile, optional): The file containing the avatar of the user.
         service (UserService, optional): The service layer for handling user-related operations.
                                             This is injected automatically using `Depends(get_user_service)`.
 
@@ -116,15 +117,15 @@ async def update_user(
     Updates an existing user in the database.
     Args:
         request (Request): containing auth user information.
-        username (str, optional): The username of the user to update.
-        email (str, optional): The email of the user to update.
-        firstname (str, optional): The first name of the user to update.
-        lastname (str, optional): The last name of the user to update.
-        phone (str, optional): The phone number of the user to update.
-        address (str, optional): The address of the user to update.
-        birth_date (date, optional): The birthdate of the user to update.
-        avatar_file (UploadFile, optional): The file containing the avatar of the user to update.
-        roles (list[str], optional): The roles of the user to update.
+        username (str, optional): The username of the user.
+        email (str, optional): The email of the user.
+        firstname (str, optional): The first name of the user.
+        lastname (str, optional): The last name of the user.
+        phone (str, optional): The phone number of the user.
+        address (str, optional): The address of the user.
+        birth_date (date, optional): The birthdate of the user.
+        avatar_file (UploadFile, optional): The file containing the avatar of the user.
+        roles (list[str], optional): The roles of the user.
         service (UserService, optional): The service layer for handling user-related operations.
                                             This is injected automatically using `Depends(get_user_service)`.
 
@@ -159,8 +160,8 @@ async def change_password(request: Request, passwords: ChangePasswordSchema , se
     """
     Change the password of a user in the database.
     Args:
-        request (Request): The id of the user to update.:
-        passwords (PasswordsSchema): A schema containing passwords of the user to update.:
+        request (Request): Authenticated user identifier from request.
+        passwords (PasswordsSchema): A schema containing passwords of the user to update.
         service (UserService, optional): The service layer for handling user-related operations.
                                             This is injected automatically using `Depends(get_user_service)`.
 
