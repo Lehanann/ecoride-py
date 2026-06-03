@@ -1,13 +1,20 @@
-from fastapi import HTTPException
+import logging
+from sqlalchemy.exc import IntegrityError
+from app.core.exceptions.http_exceptions import bad_request, forbidden, not_found, conflict
 from app.models.tables.car import Car
 from app.repositories.car_repository import CarRepository
 from app.schemas.car_schema import CarCreate
 
+logger = logging.getLogger(__name__)
 
 class CarService:
     """
     Car service that performs operations on the car repository such as reading, creating, and deleting cars.
     """
+    CAR_NOT_FOUND = "Car not found"
+    NOT_ALLOWED_DELETE = "You are not allowed to delete this car"
+    CAR_ALREADY_EXISTS = "Car already exists"
+
     def __init__(self, repository: CarRepository) -> None:
         """
         Initialize the Car service with the car repository.
@@ -38,8 +45,10 @@ class CarService:
             user_id (int): The unique identifier of the user.
 
         Raises:
-            HTTPException:
+            bad_request:
                 - If an error occurs while creating a car.
+            conflict:
+                - if the car already exists.
 
         Returns:
             Car: The newly created car.
@@ -58,9 +67,14 @@ class CarService:
             new_car = await self.repository.create(car_data)
             await self.repository.db.commit()
             return new_car
+        except IntegrityError:
+            await self.repository.db.rollback()
+            logger.exception("Integrity error while creating car")
+            raise conflict(detail=self.CAR_ALREADY_EXISTS)
         except Exception:
             await self.repository.db.rollback()
-            raise HTTPException(status_code=400,detail="Error while creating car")
+            logger.exception("Unexpected error while creating a car")
+            raise bad_request(detail="Error creating car")
 
 
     async def delete(self, car_id: int, user_id: int) -> Car:
@@ -72,20 +86,23 @@ class CarService:
             user_id (int): The unique identifier of the user.
 
         Raises:
-            HTTPException:
-                - If car not found.
-                - If car does not belong to the user.
+            not_found:
+                - If the car is not found.
+            forbidden:
+                - If the car does not belong to the user.
+            bad_request:
                 - If an error occurs while deleting a car.
+
         Returns:
             Car: The deleted car.
         """
         deleted_car = await self.repository.get_by_id(car_id)
 
         if deleted_car is None:
-            raise HTTPException(status_code=404, detail="Car not found")
+            raise not_found(detail=self.CAR_NOT_FOUND)
 
         if deleted_car.user_id != user_id:
-            raise HTTPException(status_code=403, detail="You are not allowed to delete this car")
+            raise forbidden(detail=self.NOT_ALLOWED_DELETE)
 
         try:
             await self.repository.delete(car_id)
@@ -93,4 +110,5 @@ class CarService:
             return deleted_car
         except Exception:
             await self.repository.db.rollback()
-            raise HTTPException(status_code=400,detail="Error while deleting car")
+            logger.exception("Unexpected error while deleting car")
+            raise bad_request(detail="Error deleting car")
