@@ -1,4 +1,7 @@
-from fastapi import UploadFile, HTTPException, status
+import logging
+from sqlalchemy.exc import IntegrityError
+from app.core.exceptions.http_exceptions import bad_request, not_found, conflict
+from fastapi import UploadFile
 from app.models.tables.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.change_password_schema import ChangePasswordSchema
@@ -7,6 +10,7 @@ from app.services.file_service import FileService
 from app.core.security.password_security import create_password_hash, verify_password
 from app.repositories.role_repository import RoleRepository
 
+logger = logging.getLogger(__name__)
 
 class UserService:
     """
@@ -21,6 +25,11 @@ class UserService:
         "passenger",
         "driver",
     })
+    USER_NOT_FOUND = "User not found"
+    ROLE_NOT_FOUND = "Role not found"
+    USER_ALREADY_EXISTS = "User already exists"
+    PASSWORDS_NOT_MATCH = "Password and confirm password do not match"
+    WRONG_OLD_PASSWORD = "The old password is incorrect"
 
     def __init__(self, user_repository: UserRepository, role_repository: RoleRepository):
         """
@@ -48,7 +57,7 @@ class UserService:
         """
         user = await self.user_repository.get_by_id(user_id)
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise not_found(detail=self.USER_NOT_FOUND)
         return user
 
     async def get_all(self) -> list[User]:
@@ -69,16 +78,19 @@ class UserService:
             avatar (UploadFile | None): Optional avatar file.
 
         Raises:
-            HTTPException:
-                - If passwords do not match.
+            not_found:
                 - If default role is not found.
-                - If a user with the same constraints already exists.
+            bad_request:
+                - If passwords do not match.
+                - If an error occurs while creating a user.
+            conflict:
+                - If a user already exists.
 
         Returns:
             User: The newly created user.
         """
         if data.confirm_password != data.password:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password and confirm_password are not equal")
+            raise bad_request(detail=self.PASSWORDS_NOT_MATCH)
 
         password_hash: str = create_password_hash(data.password)  # hash the password before creating user
 
@@ -111,13 +123,18 @@ class UserService:
             created_user = await self.user_repository.create(user_data)
             role = await self.role_repository.get_by_name(self.DEFAULT_ROLE)
             if role is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+                raise not_found(detail=self.ROLE_NOT_FOUND)
             created_user.roles.append(role)
             await self.user_repository.db.commit()
             return created_user
+        except IntegrityError:
+            await self.user_repository.db.rollback()
+            logger.exception("Integrity error while creating a user")
+            raise conflict(detail=self.USER_ALREADY_EXISTS)
         except Exception:
             await self.user_repository.db.rollback()
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+            logger.exception("Unexpected Error while creating a user")
+            raise bad_request(detail="Error creating user")
 
 
     async def update_user(self, user_id: int, data: UserUpdate, avatar: UploadFile | None) -> User:
@@ -130,42 +147,57 @@ class UserService:
             avatar (UploadFile | None): Optional avatar file.
 
         Raises:
-            HTTPException:
-                - If the user is not found.
-                - If a role is invalid or not found.
-                - If an error occurs during update.
+            not_found:
+                - If default role is not found.
+                - if the user is not found.
+            bad_request:
+                - If an error occurs while updating a user.
+            conflict:
+                - If a user already exists.
 
         Returns:
             User: The updated user.
         """
         user_data = data.model_dump(exclude_unset=True)
 
+        existing_user = await self.user_repository.get_by_id(user_id)
+        if existing_user is None:
+            raise not_found(detail=self.USER_NOT_FOUND)
+
         if avatar is not None:
-            avatar_url = FileService.save_profile_image(avatar)
+            avatar_url = FileService.replace_profile_image(avatar, existing_user.avatar_url)
             user_data['avatar_url'] = avatar_url
+
+        new_roles = None
+        if "roles" in user_data:
+            new_roles = []
+            for role in user_data["roles"]:
+                if role not in self.ALLOWED_USER_ROLES:
+                    raise not_found(detail=self.ROLE_NOT_FOUND)
+                role_data = await self.role_repository.get_by_name(role)
+                if role_data is None:
+                    raise not_found(detail=self.ROLE_NOT_FOUND)
+                new_roles.append(role_data)
 
         try:
             updated_user = await self.user_repository.update(user_id, user_data)
 
             if updated_user is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+                raise not_found(detail=self.USER_NOT_FOUND)
 
-            if "roles" in user_data:
-                new_roles = []
-                for role in user_data["roles"]:
-                    if role not in self.ALLOWED_USER_ROLES:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role not found")
-                    role_data = await self.role_repository.get_by_name(role)
-                    if role_data is None:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role not found")
-                    new_roles.append(role_data)
+            if new_roles is not None:
                 updated_user.roles = new_roles
 
             await self.user_repository.db.commit()
             return updated_user
+        except IntegrityError:
+            await self.user_repository.db.rollback()
+            logger.exception("Integrity error while updating a user")
+            raise conflict(detail=self.USER_ALREADY_EXISTS)
         except Exception:
             await self.user_repository.db.rollback()
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error updating user")
+            logger.exception("Unexpected Error while updating user")
+            raise bad_request(detail="Error updating user")
 
     async def change_password_user(self, user_id: int, passwords: ChangePasswordSchema) -> str:
         """
@@ -176,11 +208,14 @@ class UserService:
             passwords (ChangePasswordSchema): Password change data.
 
         Raises:
-            HTTPException:
+            not_found:
                 - If the user is not found.
+            bad_request:
                 - If passwords do not match.
                 - If the old password is incorrect.
-                - If an error occurs during update.
+                - If an error occurs while updating the user.
+            conflict:
+                - If a user already exists.
 
         Returns:
             str: Success message.
@@ -189,13 +224,13 @@ class UserService:
         user_data = dict()
 
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise not_found(detail=self.USER_NOT_FOUND)
 
         if passwords.confirm_password != passwords.new_password:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="new Password and confirm_password are not equal")
+            raise bad_request(detail=self.PASSWORDS_NOT_MATCH)
 
         if not verify_password(passwords.old_password, user.password_hash):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The old password is incorrect")
+            raise bad_request(detail=self.WRONG_OLD_PASSWORD)
 
         hashed_password: str = create_password_hash(passwords.new_password)
         user_data['password_hash'] = hashed_password
@@ -204,9 +239,14 @@ class UserService:
             await self.user_repository.update(user_id, user_data)
             await self.user_repository.db.commit()
             return "Password changed successfully"
+        except IntegrityError:
+            await self.user_repository.db.rollback()
+            logger.exception("Integrity error while changing password")
+            raise conflict(detail=self.USER_ALREADY_EXISTS)
         except Exception:
             await self.user_repository.db.rollback()
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error updating user")
+            logger.exception("Unexpected Error while updating a user")
+            raise bad_request(detail="Error updating user")
 
     async def delete_user(self, user_id: int) -> dict:
         """
@@ -218,8 +258,9 @@ class UserService:
             user_id (int): The ID of the user to delete.
 
         Raises:
-            HTTPException:
+            not_found:
                 - If the user is not found.
+            bad_request:
                 - If an error occurs during deletion.
 
         Returns:
@@ -227,11 +268,12 @@ class UserService:
         """
         user = await self.user_repository.get_by_id(user_id)
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise not_found(detail=self.USER_NOT_FOUND)
         try:
             await self.user_repository.delete(user_id)
             await self.user_repository.db.commit()
             return {"message": "User deleted successfully"}
         except Exception:
             await self.user_repository.db.rollback()
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error deleting user")
+            logger.exception("Unexpected Error while deleting a user")
+            raise bad_request(detail="Error deleting user")
