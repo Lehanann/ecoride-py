@@ -9,6 +9,7 @@ from app.schemas.user_schema import UserCreate,UserUpdate
 from app.services.file_service import FileService
 from app.core.security.password_security import create_password_hash, verify_password
 from app.repositories.role_repository import RoleRepository
+from app.core.exceptions.data_exceptions import DataIntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,8 @@ class UserService:
         Business rules:
             - User roles are limited to 'passenger' and 'driver'
     """
+    ADMIN_ROLE = "administrator"
+    EMPLOYEE_ROLE = "employee"
     DEFAULT_ROLE = "passenger"
     ALLOWED_USER_ROLES = frozenset ({
         "passenger",
@@ -28,6 +31,8 @@ class UserService:
     USER_NOT_FOUND = "User not found"
     ROLE_NOT_FOUND = "Role not found"
     USER_ALREADY_EXISTS = "User already exists"
+    ADMINISTRATOR_ALREADY_EXISTS = "Administrator already exists"
+    EMPLOYEE_ALREADY_EXISTS = "Employee already exists"
     PASSWORDS_NOT_MATCH = "Password and confirm password do not match"
     WRONG_OLD_PASSWORD = "The old password is incorrect"
 
@@ -120,10 +125,10 @@ class UserService:
                 user_data[key] = value
 
         try:
-            created_user = await self.user_repository.create(user_data)
             role = await self.role_repository.get_by_name(self.DEFAULT_ROLE)
             if role is None:
                 raise not_found(detail=self.ROLE_NOT_FOUND)
+            created_user = await self.user_repository.create(user_data)
             created_user.roles.append(role)
             await self.user_repository.db.commit()
             return created_user
@@ -277,3 +282,108 @@ class UserService:
             await self.user_repository.db.rollback()
             logger.exception("Unexpected Error while deleting a user")
             raise bad_request(detail="Error deleting user")
+
+    async def create_admin_user(self, data: UserCreate) -> User:
+        """
+        Create an administrator user.
+
+        This method ensures that only one administrator can exist in the system.
+        If an administrator already exists or if data inconsistency is detected,
+        the creation is prevented.
+
+        Args:
+            data (dict): Data required to create the user.
+
+        Raises:
+            bad_request:
+                If the provided passwords do not match.
+            conflict:
+                If an administrator already exists.
+            not_found:
+                If the administrator role cannot be found.
+            DataIntegrityError:
+                If multiple administrators are detected (invalid system state).
+
+        Returns:
+            User: The newly created administrator user.
+
+        """
+        if data.confirm_password != data.password:
+            raise bad_request(detail=self.PASSWORDS_NOT_MATCH)
+
+        password_hash: str = create_password_hash(data.password)  # hash the password before creating user
+
+        existing_admin = await self.user_repository.count_admin_user()
+        if existing_admin == 1:
+            raise conflict(detail=self.ADMINISTRATOR_ALREADY_EXISTS)
+        if existing_admin > 1:
+            logger.critical("Multiple administrator detected. This should never happen")
+            raise DataIntegrityError("Multiple administrators detected. This should never happen")
+
+        user_data = {
+            "username": data.username,
+            "email": data.email,
+            "password_hash": password_hash,
+        }
+
+        try:
+            role = await self.role_repository.get_by_name(self.ADMIN_ROLE)
+            if role is None:
+                raise not_found(detail=self.ROLE_NOT_FOUND)
+            created_user = await self.user_repository.create(user_data)
+            created_user.roles.append(role)
+            await self.user_repository.db.commit()
+            return created_user
+        except IntegrityError:
+            await self.user_repository.db.rollback()
+            logger.exception("Integrity error while creating a user")
+            raise conflict(detail=self.USER_ALREADY_EXISTS)
+        except Exception:
+            await self.user_repository.db.rollback()
+            logger.exception("Unexpected Error while creating a user")
+            raise
+
+    async def create_employee_user(self, data: UserCreate) -> User:
+        if data.confirm_password != data.password:
+            raise bad_request(detail=self.PASSWORDS_NOT_MATCH)
+
+        password_hash: str = create_password_hash(data.password)  # hash the password before creating user
+
+        existing_user = await self.user_repository.get_by_email(data.email)
+        if existing_user is not None:
+            logger.info(f"Employee user with email {data.email} already exists")
+            raise conflict(detail=self.EMPLOYEE_ALREADY_EXISTS)
+
+        user_data = {
+            "username": data.username,
+            "email": data.email,
+            "password_hash": password_hash,
+        }
+        # Champs optionnels
+        optional_fields = {
+            "firstname": data.firstname,
+            "lastname": data.lastname,
+            "phone": data.phone,
+            "address": data.address,
+            "birth_date": data.birth_date,
+        }
+
+        for key, value in optional_fields.items():
+            if value is not None:
+                user_data[key] = value
+        try:
+            role = await self.role_repository.get_by_name(self.EMPLOYEE_ROLE)
+            if role is None:
+                raise not_found(detail=self.ROLE_NOT_FOUND)
+            created_user = await self.user_repository.create(user_data)
+            created_user.roles.append(role)
+            await self.user_repository.db.commit()
+            return created_user
+        except IntegrityError:
+            await self.user_repository.db.rollback()
+            logger.exception("Integrity error while creating a user")
+            raise conflict(detail=self.USER_ALREADY_EXISTS)
+        except Exception:
+            await self.user_repository.db.rollback()
+            logger.exception("Unexpected Error while creating a user")
+            raise
