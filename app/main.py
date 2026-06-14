@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import app.core.logging
 from app.api.v1.endpoints import (user_router,
                                   brand_router,
                                   car_router,

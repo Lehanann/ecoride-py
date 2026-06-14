@@ -1,13 +1,15 @@
 ## ✅ Done
 - Refactor car feature
 - Refactor brand feature
+- Carpooling service
+- Improve error handling
 
 ## 🚧 In progress
-- Carpooling service
+
 
 ## 📌 Backlog
 - Optimize carpooling filtering in DB
-- Improve error handling
+
 - Add pagination
 
 ## 🚀 Ideas
