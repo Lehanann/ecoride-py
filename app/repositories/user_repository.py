@@ -1,7 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.models.tables.user import User
 from datetime import datetime, UTC
+
+from app.models.tables.role import Role
+
 
 class UserRepository:
     """
@@ -120,3 +123,11 @@ class UserRepository:
         user.is_active = False
         user.deleted_at = datetime.now(UTC)
         return user
+
+    async def count_admin_user(self):
+        """
+        Count the number of admin users in the database.
+        Returns:
+            int: The number of admin users in the database.
+        """
+        return await self.db.scalar(select(func.count(User.id)).filter(User.roles.any(Role.name == "administrator")))
