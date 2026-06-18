@@ -49,11 +49,11 @@ async def get_pending_opinions(request: Request,
     """
     validator_id = request.state.user_id
 
-    current_user = await user_repository.get_by_id(validator_id)
+    current_user = await user_repository.get_user_with_roles(validator_id)
     if current_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    if not any(role.name in ["employee","admin"] for role in current_user.roles):
+    if not any(role.name in ["employee","administrator"] for role in current_user.roles):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
     return await opinion_service.get_pending_opinions()

@@ -163,7 +163,7 @@ class OpinionService:
         Returns:
             Opinion: The updated opinion.
         """
-        validator = await self.user_repository.get_by_id(validator_id)
+        validator = await self.user_repository.get_user_with_roles(validator_id)
 
         if validator is None:
             raise not_found(detail=self.USER_NOT_FOUND)
