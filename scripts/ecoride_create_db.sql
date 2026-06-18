@@ -137,7 +137,7 @@ DECLARE
 BEGIN
     FOR t IN
         SELECT unnest(ARRAY[
-            'users','brands','cars', 'roles','carpoolings','opinions'
+            'users','brands','cars', 'roles','carpoolings'
         ])
     LOOP
         EXECUTE format(
