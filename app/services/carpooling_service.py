@@ -144,7 +144,7 @@ class CarpoolingService:
         Returns:
             Carpooling: The newly created carpooling instance.
         """
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_user_with_roles_and_cars(user_id)
         if user is None:
             raise not_found(detail=self.USER_NOT_FOUND)
 
@@ -233,7 +233,7 @@ class CarpoolingService:
         Returns:
             Carpooling: The updated carpooling instance.
         """
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_user_with_roles_and_cars(user_id)
         carpooling = await self.carpooling_repository.get_by_id(carpooling_id)
 
         # check that user exists
@@ -320,7 +320,7 @@ class CarpoolingService:
         Returns:
             Carpooling: The updated carpooling instance.
         """
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_user_with_roles_and_cars(user_id)
         carpooling = await self.carpooling_repository.get_by_id(carpooling_id)
 
         # check that user exists
