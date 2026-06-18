@@ -1,5 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
+
 from app.models.tables.user import User
 from datetime import datetime, UTC
 
@@ -29,9 +31,11 @@ class UserRepository:
         Returns:
             User | None: The user instance if found, otherwise None.
         """
-        result = await self.db.execute(select(User).where( User.id == user_id,
-                                                           User.is_active.is_(True))
-                                       )
+        result = await self.db.execute(
+            select(User)
+            .where(
+                User.id == user_id,
+                User.is_active.is_(True)))
         return result.scalars().one_or_none()
 
     async def get_by_email(self, email: str) -> User | None:
@@ -71,7 +75,13 @@ class UserRepository:
         Returns:
             list[User]: The List of all user's instances.
         """
-        return list(await self.db.scalars(select(User).where(User.is_active.is_(True))))
+        result = await self.db.execute(
+            select(User)
+            .options(selectinload(User.roles))
+            .where(User.is_active.is_(True))
+        )
+        users = result.scalars().all()
+        return users
 
     async def create(self, data: dict) -> User:
         """
@@ -131,3 +141,25 @@ class UserRepository:
             int: The number of admin users in the database.
         """
         return await self.db.scalar(select(func.count(User.id)).filter(User.roles.any(Role.name == "administrator")))
+
+    async def get_user_with_roles(self, user_id: int) -> User | None:
+        result = await self.db.execute(
+            select(User)
+            .options(selectinload(User.roles))
+            .where(User.id == user_id,
+                   User.is_active.is_(True)
+                   )
+        )
+        return result.scalars().one_or_none()
+
+    async def get_user_with_roles_and_cars(self, user_id: int) -> User | None:
+        result = await self.db.execute(
+            select(User)
+            .options(selectinload(User.roles),
+                     selectinload(User.cars))
+            .where(User.id == user_id,
+                   User.is_active.is_(True))
+        )
+
+        return result.scalars().one_or_none()
+
