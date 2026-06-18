@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form,  Depends, status, Request
+from fastapi import APIRouter, UploadFile, File, Form,  Depends, status, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from databases.postgresql import get_session
 from app.services.user_service import UserService
@@ -49,7 +49,11 @@ async def get_me(request: Request, service: UserService = Depends(get_service_us
                 schema, which includes relevant user details such as name and ID.
         """
     user_id: int = request.state.user_id
-    return await service.get_by_id(user_id)
+
+    if user_id is None:
+        raise HTTPException(401, "Unauthorized")
+
+    return await service.get_user_with_roles(user_id)
 
 @router.post("/",response_model=dict[str,str], status_code=status.HTTP_201_CREATED)
 async def create_user(

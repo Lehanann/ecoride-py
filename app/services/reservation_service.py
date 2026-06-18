@@ -63,7 +63,7 @@ class ReservationService:
             Reservation : The reservation of the carpooling.
         """
         # Retrieve and check user if exists
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_user_with_roles(user_id)
         if user is None:
             raise not_found(detail=self.USER_NOT_FOUND)
 
@@ -136,7 +136,7 @@ class ReservationService:
             Reservation : The reservation of the carpooling.
         """
         # checks if user exists
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_user_with_roles(user_id)
         if user is None:
             raise not_found(detail=self.USER_NOT_FOUND)
 
