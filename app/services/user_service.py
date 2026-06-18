@@ -387,3 +387,21 @@ class UserService:
             await self.user_repository.db.rollback()
             logger.exception("Unexpected Error while creating a user")
             raise
+
+    async def get_user_with_roles(self, user_id: int) -> User | None:
+        """
+        Retrieve an active user by its ID with theirs roles.
+
+        Args:
+            user_id (int): The ID of the user.
+
+        Raises:
+            HTTPException: If the user is not found.
+
+        Returns:
+            User: The user with the given ID.
+        """
+        user = await self.user_repository.get_user_with_roles(user_id)
+        if user is None:
+            raise not_found(detail=self.USER_NOT_FOUND)
+        return user
