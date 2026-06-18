@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from datetime import date
 from decimal import Decimal
 
+
 class UserBase(BaseModel):
     """
     Base schema for the user, shared by create, update, and read operations and inherited by other schemas.
@@ -82,6 +83,19 @@ class UserUpdate(BaseModel):
     avatar_url: str | None = Field(None, max_length=254, description="The public URL of the user's photo.")
     roles: list[str] | None = Field(None, min_length=1, description="The roles of the user.")
 
+class RoleRead(BaseModel):
+    """
+    Schema used to read a role.
+
+    Attributes:
+        id (int): The id of the role.
+        name (str): The name of the role.
+    """
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
 class UserRead(UserBase):
     """
     Schema used when reading an existing user from the database.
@@ -96,5 +110,5 @@ class UserRead(UserBase):
     """
     id: int
     credit: Decimal = Field(...,max_digits=6, decimal_places=2, description="The credit of the user.")
-    roles: list[str] = Field(..., description="The roles of the user.")
+    roles: list[RoleRead] = Field(..., description="The roles of the user.")
     model_config = ConfigDict(from_attributes=True)
