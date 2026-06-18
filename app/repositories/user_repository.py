@@ -143,6 +143,19 @@ class UserRepository:
         return await self.db.scalar(select(func.count(User.id)).filter(User.roles.any(Role.name == "administrator")))
 
     async def get_user_with_roles(self, user_id: int) -> User | None:
+
+        """
+        Retrieve an active user with associated roles.
+
+        This method loads the user along with their roles relationship
+        to avoid lazy loading issues in async context.
+
+        Args:
+            user_id (int): The unique identifier of the user.
+
+        Returns:
+            User | None: The user with roles if found, otherwise None.
+        """
         result = await self.db.execute(
             select(User)
             .options(selectinload(User.roles))
@@ -153,6 +166,20 @@ class UserRepository:
         return result.scalars().one_or_none()
 
     async def get_user_with_roles_and_cars(self, user_id: int) -> User | None:
+
+        """
+        Retrieve an active user with associated roles and cars.
+
+        This method eagerly loads both the roles and cars relationships
+        to ensure they are available without triggering lazy loading.
+
+        Args:
+            user_id (int): The unique identifier of the user.
+
+        Returns:
+            User | None: The user with roles and cars if found, otherwise None.
+        """
+
         result = await self.db.execute(
             select(User)
             .options(selectinload(User.roles),

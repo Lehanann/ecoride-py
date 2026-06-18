@@ -306,7 +306,6 @@ class UserService:
 
         Returns:
             User: The newly created administrator user.
-
         """
         if data.confirm_password != data.password:
             raise bad_request(detail=self.PASSWORDS_NOT_MATCH)
@@ -344,6 +343,31 @@ class UserService:
             raise
 
     async def create_employee_user(self, data: UserCreate) -> User:
+        """
+        Create a new employee user.
+
+        This method validates the provided data, hashes the password,
+        checks for duplicate email, assigns the "employee" role,
+        and persists the user in the database.
+
+        Args:
+            data (UserCreate): Data required to create the user.
+
+        Raises:
+            bad_request:
+                If the provided passwords do not match.
+            conflict:
+                If a user with the same email already exists.
+            not_found:
+                If the employee role cannot be found.
+            IntegrityError:
+                If a database constraint is violated.
+            Exception:
+                Any unexpected error during user creation.
+
+        Returns:
+            User: The newly created employee user.
+        """
         if data.confirm_password != data.password:
             raise bad_request(detail=self.PASSWORDS_NOT_MATCH)
 
