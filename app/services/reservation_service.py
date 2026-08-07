@@ -168,3 +168,23 @@ class ReservationService:
             logger.exception("Unexpected error while cancelling a reservation")
             raise bad_request(detail="Error cancelling a reservation")
 
+    async def get_user_reservations(self, user_id: int) -> list[Reservation]:
+        """
+        Retrieve all reservations for a user.
+
+        Args:
+            user_id (int): The unique identifier of the user to reserve.
+
+        Raises:
+            not_found:
+                - If the user is not found.
+
+        Returns:
+            list[Reservation] : All reservations associated with the user.
+        """
+        user = await self.user_repository.get_user_with_roles(user_id)
+
+        if user is None:
+            raise not_found(detail=self.USER_NOT_FOUND)
+
+        return await self.reservation_repository.get_user_reservations(user_id)
