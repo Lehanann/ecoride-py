@@ -1,6 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
 from app.models.tables.reservation import Reservation
+from app.models.tables.carpooling import Carpooling
+from models.tables import Car
+
 
 class ReservationRepository:
     """
@@ -68,8 +73,22 @@ class ReservationRepository:
         await self.db.delete(reservation)
         return reservation
 
+    async def get_user_reservations(self, user_id: int) -> list[Reservation]:
+        """
+        Retrieve all reservations of a user.
 
+        Args:
+            user_id (int): The unique identifier of the user.
 
-        
-
-
+        Returns:
+            list[Reservation]: All reservations associated with the user.
+        """
+        result = await self.db.scalars(
+            select(Reservation)
+            .options(selectinload(Reservation.carpooling)
+                     .selectinload(Carpooling.car)
+                     .selectinload(Car.user)
+                     )
+            .where(Reservation.user_id == user_id)
+        )
+        return list(result)
