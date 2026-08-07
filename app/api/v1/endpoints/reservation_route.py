@@ -65,7 +65,7 @@ async def get_my_reservations(request: Request,service: ReservationService = Dep
         service (ReservationService): Reservation service.
 
     Returns:
-        listAll reservations associated with the user.
+        list: All reservations associated with the user.
     """
 
     user_id = request.state.user_id

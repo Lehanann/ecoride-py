@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     PG_DB: str = Field(default="postgres")
     PG_SCHEMA: str = Field(default="public")
 
+    JWT_SECRET_KEY: str = Field(default="")
+    JWT_ALGORITHM: str = Field(default="HS256")
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=15)
+
     @property
     def dsn_async(self) -> str:
         encoded_pwd = quote_plus(self.PG_PWD)
