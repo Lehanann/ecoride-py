@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy.exc import IntegrityError
 from app.core.exceptions.http_exceptions import bad_request, forbidden, not_found, conflict
-from datetime import date
+from datetime import date, datetime
 from app.models.tables.carpooling import Carpooling
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.repositories.user_repository import UserRepository
@@ -104,10 +104,36 @@ class CarpoolingService:
         carpoolings = await self.carpooling_repository.get_all()
 
         for carpooling in carpoolings:
-            if carpooling.status == CarpoolingStatusEnum.published and carpooling.departure_date > date.today():
+            if carpooling.status == CarpoolingStatusEnum.published and carpooling.departure_date == date.today():
                 carpooling_filtered.append(carpooling)
 
         return carpooling_filtered
+
+    async def search_carpoolings(self, departure_location: str, end_location: str, departure_date: date | None = None) -> list[Carpooling]:
+        carpoolings = await self.carpooling_repository.search_carpoolings(departure_location, end_location)
+
+        if departure_date is None:
+            return carpoolings
+
+        carpooling_filtered = []
+
+        for carpooling in carpoolings:
+            if carpooling.departure_date >= departure_date:
+                carpooling_filtered.append(carpooling)
+
+        return carpooling_filtered
+
+    async def get_all_carpooling_by_user(self, user_id: int ) -> list[Carpooling]:
+        """
+               Retrieve all carpoolings associated with a user.
+
+               Args:
+                   user_id (int): The unique identifier of the user.
+
+               Returns:
+                   list[Carpooling]: List of carpooling associated with the user.
+               """
+        return await self.carpooling_repository.get_all_carpoolings_by_user(user_id)
 
     async def create_carpooling(self, carpooling: CarpoolingCreate, user_id: int) -> Carpooling:
         """

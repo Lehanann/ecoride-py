@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.tables.car import Car
-
+from sqlalchemy.orm import selectinload
 
 class CarRepository:
     """
@@ -40,7 +40,13 @@ class CarRepository:
         Returns:
             list[Car]: List of car instances by their user ID.
         """
-        return list(await self.db.scalars(select(Car).where(Car.user_id == user_id)))
+        result = await self.db.scalars(
+            select(Car)
+            .options(
+                selectinload(Car.brand))
+            .where(Car.user_id == user_id)
+        )
+        return list(result)
 
     async def create(self, data: dict) -> Car:
         """

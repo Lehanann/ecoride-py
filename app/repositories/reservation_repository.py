@@ -4,7 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.tables.reservation import Reservation
 from app.models.tables.carpooling import Carpooling
-from models.tables import Car
+from app.models.tables import Car
 
 
 class ReservationRepository:
@@ -85,10 +85,14 @@ class ReservationRepository:
         """
         result = await self.db.scalars(
             select(Reservation)
-            .options(selectinload(Reservation.carpooling)
+            .options(
+                selectinload(Reservation.carpooling)
                      .selectinload(Carpooling.car)
-                     .selectinload(Car.user)
-                     )
+                     .selectinload(Car.user),
+                selectinload(Reservation.carpooling)
+                    .selectinload(Carpooling.car)
+                    .selectinload(Car.brand)
+            )
             .where(Reservation.user_id == user_id)
         )
         return list(result)

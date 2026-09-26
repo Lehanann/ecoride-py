@@ -1,11 +1,11 @@
 import logging
 from sqlalchemy.exc import IntegrityError
 from app.core.exceptions.http_exceptions import bad_request, not_found, conflict
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from app.models.tables.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.change_password_schema import ChangePasswordSchema
-from app.schemas.user_schema import UserCreate,UserUpdate
+from app.schemas.user_schema import UserCreate, UserEmployeeCreate, UserProfileUpdate, UserAccountUpdate, UserRoleUpdate
 from app.services.file_service import FileService
 from app.core.security.password_security import create_password_hash, verify_password
 from app.repositories.role_repository import RoleRepository
@@ -35,6 +35,7 @@ class UserService:
     EMPLOYEE_ALREADY_EXISTS = "Employee already exists"
     PASSWORDS_NOT_MATCH = "Password and confirm password do not match"
     WRONG_OLD_PASSWORD = "The old password is incorrect"
+    EXISTING_MAIL = "The email exists already! You can't use it."
 
     def __init__(self, user_repository: UserRepository, role_repository: RoleRepository):
         """
@@ -74,13 +75,12 @@ class UserService:
         """
         return await self.user_repository.get_all()
 
-    async def create_user(self, data: UserCreate, avatar: UploadFile | None) -> User:
+    async def create_user(self, data: UserCreate) -> User:
         """
         Create a new user.
 
         Args:
             data (UserCreate): The data required to create a user.
-            avatar (UploadFile | None): Optional avatar file.
 
         Raises:
             not_found:
@@ -99,30 +99,11 @@ class UserService:
 
         password_hash: str = create_password_hash(data.password)  # hash the password before creating user
 
-        avatar_url: str | None = None
-
-        if avatar:
-            avatar_url = FileService.save_profile_image(avatar)
-
         user_data = {
             "username": data.username,
             "email": data.email,
             "password_hash": password_hash,
         }
-
-        # Champs optionnels
-        optional_fields = {
-            "firstname": data.firstname,
-            "lastname": data.lastname,
-            "phone": data.phone,
-            "address": data.address,
-            "birth_date": data.birth_date,
-            "avatar_url": avatar_url,
-        }
-
-        for key, value in optional_fields.items():
-            if value is not None:
-                user_data[key] = value
 
         try:
             role = await self.role_repository.get_by_name(self.DEFAULT_ROLE)
@@ -141,68 +122,87 @@ class UserService:
             logger.exception("Unexpected Error while creating a user")
             raise bad_request(detail="Error creating user")
 
+    async def update_profile(self, user_id: int, payload: UserProfileUpdate) -> User:
 
-    async def update_user(self, user_id: int, data: UserUpdate, avatar: UploadFile | None) -> User:
-        """
-        Update an existing user.
-
-        Args:
-            user_id (int): The ID of the user to update.
-            data (UserUpdate): The fields to update.
-            avatar (UploadFile | None): Optional avatar file.
-
-        Raises:
-            not_found:
-                - If default role is not found.
-                - if the user is not found.
-            bad_request:
-                - If an error occurs while updating a user.
-            conflict:
-                - If a user already exists.
-
-        Returns:
-            User: The updated user.
-        """
-        user_data = data.model_dump(exclude_unset=True)
-
-        existing_user = await self.user_repository.get_by_id(user_id)
-        if existing_user is None:
-            raise not_found(detail=self.USER_NOT_FOUND)
-
-        if avatar is not None:
-            avatar_url = FileService.replace_profile_image(avatar, existing_user.avatar_url)
-            user_data['avatar_url'] = avatar_url
-
-        new_roles = None
-        if "roles" in user_data:
-            new_roles = []
-            for role in user_data["roles"]:
-                if role not in self.ALLOWED_USER_ROLES:
-                    raise not_found(detail=self.ROLE_NOT_FOUND)
-                role_data = await self.role_repository.get_by_name(role)
-                if role_data is None:
-                    raise not_found(detail=self.ROLE_NOT_FOUND)
-                new_roles.append(role_data)
+        data = payload.model_dump(exclude_unset=True)
 
         try:
-            updated_user = await self.user_repository.update(user_id, user_data)
+            updated_user = await self.user_repository.update_profile(user_id, data)
 
             if updated_user is None:
                 raise not_found(detail=self.USER_NOT_FOUND)
 
-            if new_roles is not None:
-                updated_user.roles = new_roles
-
             await self.user_repository.db.commit()
             return updated_user
+        except HTTPException:
+            raise
+        except Exception:
+            await self.user_repository.db.rollback()
+            logger.exception("Unexpected Error while updating user profile")
+            raise bad_request(detail="Error updating user profile")
+
+    async def update_account(self, user_id: int, payload: UserAccountUpdate) -> User:
+
+        data = payload.model_dump(exclude_unset=True)
+
+        try:
+            updated_user = await self.user_repository.update_account(user_id, data)
+            if updated_user is None:
+                raise not_found(detail=self.USER_NOT_FOUND)
+            await self.user_repository.db.commit()
+            return updated_user
+        except HTTPException:
+            raise
         except IntegrityError:
             await self.user_repository.db.rollback()
-            logger.exception("Integrity error while updating a user")
+            logger.exception("Integrity error while updating a user account")
             raise conflict(detail=self.USER_ALREADY_EXISTS)
         except Exception:
             await self.user_repository.db.rollback()
-            logger.exception("Unexpected Error while updating user")
-            raise bad_request(detail="Error updating user")
+            logger.exception("Unexpected Error while updating user account")
+            raise bad_request(detail="Error updating user account")
+
+    async def update_roles(self, user_id: int, payload: UserRoleUpdate) -> User:
+
+        try:
+            roles = []
+            for role_name in payload.roles:
+                role = await self.role_repository.get_by_name(role_name)
+                if role is None:
+                    raise not_found(detail=self.ROLE_NOT_FOUND)
+                roles.append(role)
+            updated_user = await self.user_repository.update_roles(user_id, roles)
+            if updated_user is None:
+                raise not_found(detail=self.USER_NOT_FOUND)
+            await self.user_repository.db.commit()
+            return updated_user
+        except HTTPException:
+            raise
+        except Exception:
+            await self.user_repository.db.rollback()
+            logger.exception("Unexpected Error while updating user roles")
+            raise bad_request(detail="Error updating user roles")
+
+    async def update_avatar(self, user_id: int, avatar: UploadFile | None) -> User:
+
+        try:
+
+            user = await self.user_repository.get_user_with_roles(user_id)
+
+            if user is None:
+                raise not_found(detail=self.USER_NOT_FOUND)
+
+            if avatar is not None:
+                avatar_url = FileService.replace_profile_image(avatar, user.avatar_url)
+                user.avatar_url = avatar_url
+            await self.user_repository.db.commit()
+            return user
+        except HTTPException:
+            raise
+        except Exception:
+            await self.user_repository.db.rollback()
+            logger.exception("Unexpected Error while updating user avatar")
+            raise bad_request(detail="Error updating user avatar")
 
     async def change_password_user(self, user_id: int, passwords: ChangePasswordSchema) -> str:
         """
@@ -226,8 +226,7 @@ class UserService:
             str: Success message.
         """
         user = await self.user_repository.get_by_id(user_id)
-        user_data = dict()
-
+       
         if user is None:
             raise not_found(detail=self.USER_NOT_FOUND)
 
@@ -238,12 +237,13 @@ class UserService:
             raise bad_request(detail=self.WRONG_OLD_PASSWORD)
 
         hashed_password: str = create_password_hash(passwords.new_password)
-        user_data['password_hash'] = hashed_password
 
         try:
-            await self.user_repository.update(user_id, user_data)
+            await self.user_repository.update_password(user_id, hashed_password)
             await self.user_repository.db.commit()
             return "Password changed successfully"
+        except HTTPException:
+            raise
         except IntegrityError:
             await self.user_repository.db.rollback()
             logger.exception("Integrity error while changing password")
@@ -342,7 +342,7 @@ class UserService:
             logger.exception("Unexpected Error while creating a user")
             raise
 
-    async def create_employee_user(self, data: UserCreate) -> User:
+    async def create_employee_user(self, data: UserEmployeeCreate) -> User:
         """
         Create a new employee user.
 

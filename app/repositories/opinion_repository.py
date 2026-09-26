@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.models.tables.opinion import Opinion
 from app.utils.opinion_status_enum import OpinionStatusEnum
 from datetime import datetime
@@ -56,10 +57,11 @@ class OpinionRepository:
         Returns:
             list[Opinion]: The list of approved opinions for the user.
         """
-        return list(await self.db.scalars(select(Opinion)
-                                          .where(Opinion.target_id == user_id,
-                                                 Opinion.status == OpinionStatusEnum.approved)
-                                          ))
+        return list(await self.db.scalars(select(Opinion).options(selectinload(Opinion.author)
+        )
+        .where(Opinion.target_id == user_id,
+            Opinion.status == OpinionStatusEnum.approved)
+        ))
 
     async def create(self, data: dict) -> Opinion:
         """

@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (user_router,
                                   opinion_router,
                                   reservation_router,
                                   authentication_router,
+                                  statistics_router,
                                   )
 
 app = FastAPI()
@@ -32,6 +33,7 @@ app.include_router(carpooling_router)
 app.include_router(opinion_router)
 app.include_router(reservation_router)
 app.include_router(authentication_router)
+app.include_router(statistics_router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 profiles_path = BASE_DIR / "storage" / "profiles"

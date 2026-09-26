@@ -170,13 +170,13 @@ class OpinionService:
 
         # Checks that the user has the 'employee' role
         roles = validator.roles
-        is_employee = False
+        is_moderator = False
         for role in roles:
-            if role.name == "employee":
-                is_employee = True
+            if role.name in ["employee", "administrator"]:
+                is_moderator = True
                 break
 
-        if not is_employee:
+        if not is_moderator:
             raise forbidden(detail=self.NOT_EMPLOYEE)
 
         # Checks current opinion exists

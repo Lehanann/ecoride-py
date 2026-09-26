@@ -35,6 +35,12 @@ class OpinionStatusUpdate(BaseModel):
     """
     status: OpinionStatusEnum = Field(..., description="Opinion status.")
 
+class OpinionAuthorRead(BaseModel):
+    id: int = Field(..., description="Author user ID.")
+    username: str = Field(..., description="Author username.")
+
+    model_config = ConfigDict(from_attributes=True)
+    
 class OpinionRead(OpinionBase):
     """
     Schema used when reading an opinion from the database.
@@ -56,5 +62,6 @@ class OpinionRead(OpinionBase):
     status: OpinionStatusEnum = Field(..., description="Opinion status.")
     validator_id: int | None = Field(None, description="Validator user ID.")
     validated_at: datetime | None = Field(None, description="Validation timestamp.")
+    author: OpinionAuthorRead
 
     model_config = ConfigDict(from_attributes=True)

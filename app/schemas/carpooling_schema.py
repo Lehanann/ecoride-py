@@ -2,6 +2,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import date, time
 from app.utils.carpooling_status_enum import CarpoolingStatusEnum
+from app.utils.energy_enum import CarEnum
 
 class CarpoolingBase(BaseModel):
     """
@@ -82,6 +83,28 @@ class CarpoolingStatusUpdate(BaseModel):
     """
     status: CarpoolingStatusEnum = Field(..., description="The status of the carpooling.")
 
+class UserSummary(BaseModel):
+    id: int = Field(..., description="The ID of the user.")
+    username: str = Field(..., description="The username of the user.")
+
+    model_config = ConfigDict(from_attributes=True)
+
+class BrandSummary(BaseModel):
+    id: int = Field(..., description="The ID of the brand.")
+    name: str = Field(..., description="The name of the brand.")
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CarSummary(BaseModel):
+    id: int = Field(..., description="The ID of the carpooling.")
+    model: str = Field(..., description="The model of the carpooling.")
+    registration: str = Field(..., description="The registration of the car.")
+    energy: CarEnum = Field(..., description="The energy of the car.")
+    brand: BrandSummary = Field(..., description="The brand of the carpooling.")
+    user: UserSummary = Field(..., description="The user associated with the brand.")
+
+    model_config = ConfigDict(from_attributes=True)
+
 class CarpoolingRead(CarpoolingBase):
     """
     Schema used when reading an existing carpooling from the database.
@@ -91,7 +114,16 @@ class CarpoolingRead(CarpoolingBase):
     Attributes:
         id (int): The ID of the carpooling.
         status (CarpoolingStatusEnum): The status of the carpooling.
+        car: CarSummary = Field(..., description="The car read.")
     """
+    id: int = Field(..., description="The ID of the carpooling.")
+    status: CarpoolingStatusEnum = Field(..., description="The status of the carpooling.")
+
+    car: CarSummary = Field(..., description="The car associated with the carpooling.")
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CarpoolingReadNew(BaseModel):
     id: int = Field(..., description="The ID of the carpooling.")
     status: CarpoolingStatusEnum = Field(..., description="The status of the carpooling.")
 

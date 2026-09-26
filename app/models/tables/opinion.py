@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, Text, ForeignKey, DateTime, text, func
+from sqlalchemy import Integer, Text, ForeignKey, DateTime, text, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ENUM
 from databases.postgresql import Base
@@ -32,6 +32,14 @@ class Opinion(Base):
         - note must be between 1 and 5
     """
     __tablename__ = 'opinions'
+
+    __table_args__ = (
+        UniqueConstraint(
+            "author_id",
+            "carpooling_id",
+            name="uq_opinion_author_carpooling",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     comment: Mapped[str] = mapped_column(Text, nullable=False)

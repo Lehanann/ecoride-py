@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     JWT_SECRET_KEY: str = Field(default="")
     JWT_ALGORITHM: str = Field(default="HS256")
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=15)
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
 
     @property
     def dsn_async(self) -> str:
