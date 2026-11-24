@@ -1,18 +1,25 @@
-from fastapi import APIRouter, Depends, status, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.user_repository import UserRepository
-from app.schemas.carpooling_schema import CarpoolingCreate, CarpoolingRead, CarpoolingUpdate, CarpoolingStatusUpdate
-from app.services.carpooling_service import CarpoolingService
-from app.repositories.carpooling_repository import CarpoolingRepository
+from datetime import date
 from databases.postgresql import get_session
-from app.services.transaction_service import TransactionService
+from fastapi import APIRouter, Depends, status, Request, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.repositories.carpooling_repository import CarpoolingRepository
+from app.repositories.user_repository import UserRepository
 from app.repositories.transaction_repository import TransactionRepository
+from app.repositories.opinion_repository import OpinionRepository
+from app.services.carpooling_service import CarpoolingService
+from app.services.transaction_service import TransactionService
+from app.schemas.carpooling_schema import (CarpoolingCreate,
+                                           CarpoolingRead,
+                                           CarpoolingUpdate,
+                                           CarpoolingStatusUpdate,
+                                           CarpoolingReadNew)
 
 router = APIRouter(prefix="/carpoolings", tags=["carpoolings"])
 
 def get_service_carpooling(db: AsyncSession = Depends(get_session)) -> CarpoolingService:
     return CarpoolingService(CarpoolingRepository(db),
                              UserRepository(db),
+                             OpinionRepository(db),
                              TransactionService(TransactionRepository(db),
                                                 CarpoolingRepository(db),
                                                 UserRepository(db)
@@ -38,6 +45,34 @@ async def get_all_carpoolings(service: CarpoolingService = Depends(get_service_c
     """
     return await service.get_all_carpoolings()
 
+@router.get("/me", response_model=list[CarpoolingRead], status_code=status.HTTP_200_OK)
+async def get_all_carpoolings_by_user(request: Request,service: CarpoolingService = Depends(get_service_carpooling)):
+    """
+    Retrieve a list of all carpoolings associated with the user.
+    Args:
+        request (Request): Request containing the user identifier allowed by the middleware auth.
+            we can retrieve the identifier of the user.
+        service (CarpoolingService: The service layer for handling user-related operations.
+            This is injected automatically using Depends(get_service_carpooling).
+
+    Returns:
+        list[CarRead]: List of all carpoolings for the user, represented by the 'CarpoolingRead' schema which
+        includes relevant carpooling details such as ID.
+    """
+
+    user_id = request.state.user_id
+    if user_id is None:
+        raise HTTPException(401, "Unauthorized")
+    return await service.get_all_carpooling_by_user(user_id)
+
+@router.get("/search", response_model=list[CarpoolingRead])
+async def search_carpoolings(
+        departure_location: str,
+        end_location: str,
+        departure_date: date | None = None,
+        service: CarpoolingService = Depends(get_service_carpooling)):
+    return await service.search_carpoolings(departure_location, end_location, departure_date)
+
 @router.get("/{carpooling_id}", response_model=CarpoolingRead)
 async def get_public_carpooling(carpooling_id: int, service: CarpoolingService = Depends(get_service_carpooling)):
     """
@@ -57,7 +92,8 @@ async def get_public_carpooling(carpooling_id: int, service: CarpoolingService =
     """
     return await service.get_public_carpooling_by_id(carpooling_id)
 
-@router.post("/", response_model=CarpoolingRead, status_code=status.HTTP_201_CREATED)
+
+@router.post("/", response_model=CarpoolingReadNew, status_code=status.HTTP_201_CREATED)
 async def create_carpooling(request: Request,
                             data: CarpoolingCreate,
                             service: CarpoolingService = Depends(get_service_carpooling)):
@@ -101,7 +137,7 @@ async def update_carpooling(request: Request,
     user_id = request.state.user_id
     return await service.update_carpooling(carpooling_id, data, user_id)
 
-@router.patch("/{carpooling_id}/status", response_model=CarpoolingRead, status_code=status.HTTP_200_OK)
+@router.patch("/{carpooling_id}/status", response_model=CarpoolingReadNew, status_code=status.HTTP_200_OK)
 async def update_carpooling_status(request: Request,
                                    carpooling_id: int,
                                    data: CarpoolingStatusUpdate,

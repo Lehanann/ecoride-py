@@ -35,7 +35,7 @@ class FileService:
             for chunk in iter(lambda: file.file.read(cls.BUFFER_SIZE), b''):
                 buffer.write(chunk)
 
-        return f'storage/profiles/{filename}'
+        return f'profiles/{filename}'
 
     @classmethod
     def replace_profile_image(cls, file: UploadFile, old_file_path: str | None) -> str:

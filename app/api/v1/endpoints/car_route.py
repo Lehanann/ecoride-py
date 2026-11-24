@@ -68,6 +68,6 @@ async def delete_car(request: Request, car_id: int, service: CarService = Depend
         dict[str,str]: Message indicates the success of the deletion of the car.
     """
     user_id = request.state.user_id
-    await service.delete(car_id, user_id)
+    await service.soft_delete(car_id, user_id)
     return {"message": "Car deleted successfully"}
 

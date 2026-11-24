@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from app.models.tables.opinion import Opinion
 from app.utils.opinion_status_enum import OpinionStatusEnum
 from datetime import datetime
@@ -27,7 +28,7 @@ class OpinionRepository:
         Returns:
             Opinion | None: The opinion instance if found, otherwise None.
         """
-        return await self.db.get(Opinion, opinion_id)
+        return await self.db.scalar(select(Opinion).options(selectinload(Opinion.author)).where(Opinion.id==opinion_id))
 
     async def get_all_by_status_pending(self) -> list[Opinion]:
         """
@@ -36,7 +37,10 @@ class OpinionRepository:
         Returns:
             list[Opinion]: The list of pending opinions.
         """
-        return list(await self.db.scalars(select(Opinion).where(Opinion.status == OpinionStatusEnum.pending)))
+        return list(await self.db.scalars(
+            select(Opinion)
+            .options(selectinload(Opinion.author))
+            .where(Opinion.status == OpinionStatusEnum.pending)))
 
     async def get_all_by_status_rejected(self) -> list[Opinion]:
         """
@@ -45,7 +49,10 @@ class OpinionRepository:
         Returns:
             list[Opinion]: The list of rejected opinions.
         """
-        return list(await self.db.scalars(select(Opinion).where(Opinion.status == OpinionStatusEnum.rejected)))
+        return list(await self.db.scalars(
+            select(Opinion)
+            .options(selectinload(Opinion.author))
+            .where(Opinion.status == OpinionStatusEnum.rejected)))
 
     async def get_all_by_user(self, user_id: int) -> list[Opinion]:
         """
@@ -56,10 +63,11 @@ class OpinionRepository:
         Returns:
             list[Opinion]: The list of approved opinions for the user.
         """
-        return list(await self.db.scalars(select(Opinion)
-                                          .where(Opinion.target_id == user_id,
-                                                 Opinion.status == OpinionStatusEnum.approved)
-                                          ))
+        return list(await self.db.scalars(select(Opinion).options(selectinload(Opinion.author)
+        )
+        .where(Opinion.target_id == user_id,
+            Opinion.status == OpinionStatusEnum.approved)
+        ))
 
     async def create(self, data: dict) -> Opinion:
         """
@@ -100,3 +108,22 @@ class OpinionRepository:
         opinion.validator_id = validator_id
         opinion.validated_at = validated_at
         return opinion
+
+    async def get_rating_stats(self, user_id: int) -> tuple[int, float]:
+        stmt = select(
+            func.count(Opinion.note),
+            func.avg(Opinion.note),
+        ).where(
+            Opinion.target_id == user_id,
+            Opinion.status == OpinionStatusEnum.approved,
+        )
+        count, average = (await self.db.execute(stmt)).one()
+        return count, average if average is not None else 0.0
+
+
+    async def has_opinion(self, author_id: int, carpooling_id: int) -> bool:
+        opinion = await self.db.scalar(select(Opinion).where(
+            Opinion.author_id == author_id,
+            Opinion.carpooling_id == carpooling_id,))
+
+        return opinion is not None

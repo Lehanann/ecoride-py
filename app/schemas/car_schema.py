@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import date
 from app.utils.energy_enum import CarEnum
 
@@ -30,6 +30,12 @@ class CarCreate(CarBase):
     """
     pass
 
+class BrandSummary(BaseModel):
+    id: int = Field(..., description="The id of the brand.")
+    name: str = Field(..., description="The name of the brand.")
+
+    model_config = ConfigDict(from_attributes=True)
+
 class CarRead(CarBase):
     """
     Schema used when reading an existing car from the database.
@@ -40,3 +46,6 @@ class CarRead(CarBase):
         id (int): The ID of the car.
     """
     id : int = Field(..., description="The id of the car.")
+    brand: BrandSummary = Field(..., description="The brand of the car.")
+
+    model_config = ConfigDict(from_attributes=True)

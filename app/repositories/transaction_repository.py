@@ -1,7 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from datetime import datetime, timedelta, timezone
+
 from app.models.tables.transaction import Transaction
 from app.utils.transaction_type_enum import TransactionTypeEnum
+from app.schemas.statistics_schema import RevenueStat
+
 from decimal import Decimal
 
 class TransactionRepository:
@@ -70,3 +74,37 @@ class TransactionRepository:
         )
         self.db.add(transaction)
         return transaction
+
+    async def get_revenues_last_7_days(self) -> list[RevenueStat]:
+        seven_days_ago = (
+                datetime.now(timezone.utc)
+                - timedelta(days=7)
+        )
+
+        result = await self.db.execute(
+            select(
+                func.date(Transaction.created_at).label("date"),
+                func.sum(Transaction.amount).label("revenue_amount")
+            )
+            .where(
+                Transaction.transaction_type
+                == TransactionTypeEnum.commission
+            )
+            .where(
+                Transaction.created_at >= seven_days_ago
+            )
+            .group_by(
+                func.date(Transaction.created_at)
+            )
+            .order_by(
+                func.date(Transaction.created_at)
+            )
+        )
+
+        rows = result.all()
+        return [RevenueStat(
+            date=row.date,
+            amount=row.revenue_amount,
+        )
+        for row in rows
+        ]

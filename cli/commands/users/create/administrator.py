@@ -6,16 +6,19 @@ from asyncio import run as aiorun
 from app.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
 from app.repositories.role_repository import RoleRepository
+from app.repositories.opinion_repository import OpinionRepository
 from databases.postgresql import AsyncSessionLocal
 from app.schemas.user_schema import UserCreate
 
 app = typer.Typer()
 
+
 async def create_admin_user(user: UserCreate):
     async with AsyncSessionLocal() as db:
         user_repository = UserRepository(db)
         role_repository = RoleRepository(db)
-        service = UserService(user_repository, role_repository)
+        opinion_repository = OpinionRepository(db)
+        service = UserService(user_repository, role_repository, opinion_repository)
         await service.create_admin_user(user)
 
 @app.command()

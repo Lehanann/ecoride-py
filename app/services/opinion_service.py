@@ -125,6 +125,9 @@ class OpinionService:
         try:
             opinion = await self.opinion_repository.create(opinion_data)
             await self.opinion_repository.db.commit()
+            await self.opinion_repository.db.refresh(opinion)
+            print(opinion.id)
+            print(opinion.author)
             return opinion
         except IntegrityError:
             await self.opinion_repository.db.rollback()
@@ -170,13 +173,13 @@ class OpinionService:
 
         # Checks that the user has the 'employee' role
         roles = validator.roles
-        is_employee = False
+        is_moderator = False
         for role in roles:
-            if role.name == "employee":
-                is_employee = True
+            if role.name in ["employee", "administrator"]:
+                is_moderator = True
                 break
 
-        if not is_employee:
+        if not is_moderator:
             raise forbidden(detail=self.NOT_EMPLOYEE)
 
         # Checks current opinion exists

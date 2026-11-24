@@ -97,9 +97,9 @@ class UserRepository:
         self.db.add(user)
         return user
 
-    async def update(self,user_id: int, data: dict) -> User | None:
+    async def update_profile(self, user_id: int, data: dict) -> User | None:
         """
-        Update an existing user instance by its ID.
+        Update a user profile instance by its ID.
 
         Args
             user_id(int): The user ID to update.
@@ -108,14 +108,78 @@ class UserRepository:
         Returns:
              user(User): The updated user instance.
         """
-        user = await self.get_by_id(user_id)
+        user = await self.get_user_with_roles(user_id)
         if user is None:
             return None
 
-        for key, value in data.items():
-            setattr(user, key, value)
+        user.firstname = data.get('firstname', user.firstname)
+        user.lastname = data.get('lastname', user.lastname)
+        user.phone = data.get('phone',user.phone)
+        user.address = data.get('address',user.address)
+        user.birth_date = data.get('birth_date',user.birth_date)
 
         return user
+
+    async def update_account(self, user_id: int, data: dict) -> User | None:
+        """
+        Update a user account instance by its ID.
+
+        Args
+            user_id(int): The user ID to update.
+            data (dict): Fields to update the user instance.
+
+        Returns:
+             user(User): The updated user instance.
+        """
+        user = await self.get_user_with_roles(user_id)
+
+        if user is None:
+            return None
+
+        user.username = data.get('username',user.username)
+        user.email = data.get('email',user.email)
+
+        return user
+
+    async def update_roles(self, user_id: int, roles: list[Role] ) -> User | None:
+        """
+        Update a user roles instance by its ID.
+
+        Args
+            user_id(int): The user ID to update.
+            data (dict): Fields to update the user instance.
+
+        Returns:
+             user(User): The updated user instance.
+        """
+        user = await self.get_user_with_roles(user_id)
+
+        if user is None:
+            return None
+
+        user.roles = roles
+
+        return user
+
+    async def update_password(self, user_id: int, password_hash: str) -> User | None:
+        """
+       Update a user password instance by its ID.
+
+       Args
+           user_id(int): The user ID to update.
+           password_hash (str): Hashed password to update the user instance.
+
+       Returns:
+            user(User): The updated user instance.
+       """
+        user = await self.get_user_with_roles(user_id)
+        if user is None:
+            return None
+
+        user.password_hash = password_hash
+
+        return user
+
 
     async def delete(self, user_id: int) -> User | None:
         """

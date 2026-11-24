@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.tables.car import Car
-
+from sqlalchemy.orm import selectinload
 
 class CarRepository:
     """
@@ -40,7 +40,14 @@ class CarRepository:
         Returns:
             list[Car]: List of car instances by their user ID.
         """
-        return list(await self.db.scalars(select(Car).where(Car.user_id == user_id)))
+        result = await self.db.scalars(
+            select(Car)
+            .options(
+                selectinload(Car.brand))
+            .where(Car.user_id == user_id,
+                   Car.is_active.is_(True))
+        )
+        return list(result)
 
     async def create(self, data: dict) -> Car:
         """
@@ -56,8 +63,17 @@ class CarRepository:
         self.db.add(car)
         return car
 
+    async def soft_delete(self, car_id: int) -> Car | None:
+        car = await self.get_by_id(car_id)
+        if car is None:
+            return None
+        car.is_active = False
+        self.db.add(car)
+        return car
+
+    """ 
     async def delete(self, car_id: int) -> Car | None:
-        """
+
         Deletes a car by its ID.
 
         Args:
@@ -65,9 +81,10 @@ class CarRepository:
 
         Returns:
             Car | None: The deleted car instance if found, otherwise None.
-        """
+
         car = await self.get_by_id(car_id)
         if car is None:
             return None
         await self.db.delete(car)
         return car
+    """

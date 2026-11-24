@@ -3,10 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.opinion_repository import OpinionRepository
 from app.services.reservation_service import ReservationService
-from app.schemas.reservation_schema import ReservationCreate
+from app.schemas.reservation_schema import ReservationCreate, UserReservationResponse
 from databases.postgresql import get_session
-
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -14,7 +14,7 @@ def get_service_reservation( db: AsyncSession = Depends(get_session)) -> Reserva
     """
     Provide an instance of ReservationService with injected repositories.
     """
-    return ReservationService(ReservationRepository(db), CarpoolingRepository(db), UserRepository(db))
+    return ReservationService(ReservationRepository(db), CarpoolingRepository(db), UserRepository(db), OpinionRepository(db))
 
 
 @router.post("/", response_model=dict[str,str])
@@ -55,3 +55,19 @@ async def cancel(request: Request, carpooling_id: int, service: ReservationServi
     await service.cancel(user_id, carpooling_id)
     return {"message": "Reservation cancelled"}
 
+@router.get("/me", response_model=list[UserReservationResponse])
+async def get_my_reservations(request: Request,service: ReservationService = Depends(get_service_reservation)):
+    """
+    Retrieve all reservations of the authenticated user.
+
+    Args:
+        request (Request): Request containing the authenticated user's ID.
+        service (ReservationService): Reservation service.
+
+    Returns:
+        list: All reservations associated with the user.
+    """
+
+    user_id = request.state.user_id
+
+    return await service.get_user_reservations(user_id)

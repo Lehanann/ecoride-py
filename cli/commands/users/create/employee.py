@@ -7,13 +7,13 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.role_repository import RoleRepository
 from app.core.exceptions.data_exceptions import DataIntegrityError
 from databases.postgresql import AsyncSessionLocal
-from app.schemas.user_schema import UserCreate
+from app.schemas.user_schema import UserEmployeeCreate
 
 app = typer.Typer()
 
 DOMAIN = "exemple.fr"
 
-async def create_employee_user(user: UserCreate):
+async def create_employee_user(user: UserEmployeeCreate):
     async with AsyncSessionLocal() as db:
         user_repository = UserRepository(db)
         role_repository = RoleRepository(db)
@@ -65,12 +65,12 @@ def employee(
     username = firstname[0].lower().strip() + lastname.lower().strip()
     email = username + "@" + DOMAIN
 
-
+    typer.secho(f"Firstname: {firstname}", fg="green")
     user_data = {
         "username": username,
         "email": email,
-        "firstname": firstname,
-        "lastname": lastname,
+        "firstname": firstname.lower().strip(),
+        "lastname": lastname.lower().strip(),
         "password": password,
         "confirm_password": confirm_password,
         "phone": phone or None,
@@ -78,7 +78,7 @@ def employee(
         "birth_date": birth_date or None,
     }
     try:
-        user = UserCreate(**user_data)
+        user = UserEmployeeCreate(**user_data)
         aiorun(create_employee_user(user))
         typer.secho("✅ User created successfully.", fg="green")
     except DataIntegrityError as e:
