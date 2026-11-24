@@ -156,7 +156,6 @@ Créer un fichier `.env`.
 Exemple :
 
 ```env
-DATABASE_URL=postgresql+asyncpg://user:password@localhost/ecoride
 JWT_SECRET_KEY=your-secret-key
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
