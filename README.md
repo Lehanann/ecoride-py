@@ -115,7 +115,7 @@ docs/porstgresql.md
 ### Cloner le projet
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Lehanann/ecoride-py
 cd ecoride-py
 ```
 
