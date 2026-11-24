@@ -20,7 +20,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000","http://192.168.10.20:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,7 +42,7 @@ app.mount("/profiles", StaticFiles(directory=profiles_path), name="profiles")
 @app.get("/")
 async def root():
     """
-    Entrypoint ecoride backend fastapi
+    Entrypoint EcoRide backend fastapi
 
     Returns: Welcome message
     """

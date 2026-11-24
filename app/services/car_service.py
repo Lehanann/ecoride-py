@@ -77,8 +77,8 @@ class CarService:
             raise bad_request(detail="Error creating car")
 
 
-    async def delete(self, car_id: int, user_id: int) -> Car:
-        """
+    """async def delete(self, car_id: int, user_id: int) -> Car:
+        
         Delete a car owned by the user.
 
         Args:
@@ -95,7 +95,7 @@ class CarService:
 
         Returns:
             Car: The deleted car.
-        """
+      
         deleted_car = await self.repository.get_by_id(car_id)
 
         if deleted_car is None:
@@ -106,6 +106,23 @@ class CarService:
 
         try:
             await self.repository.delete(car_id)
+            await self.repository.db.commit()
+            return deleted_car
+        except Exception:
+            await self.repository.db.rollback()
+            logger.exception("Unexpected error while deleting car")
+            raise bad_request(detail="Error deleting car")
+    """
+    async def soft_delete(self, car_id: int, user_id: int) -> Car:
+        deleted_car = await self.repository.get_by_id(car_id)
+        if deleted_car is None:
+            raise not_found(detail=self.CAR_NOT_FOUND)
+
+        if deleted_car.user_id != user_id:
+            raise forbidden(detail=self.NOT_ALLOWED_DELETE)
+
+        try:
+            await self.repository.soft_delete(car_id)
             await self.repository.db.commit()
             return deleted_car
         except Exception:

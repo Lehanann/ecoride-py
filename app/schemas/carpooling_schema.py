@@ -86,6 +86,9 @@ class CarpoolingStatusUpdate(BaseModel):
 class UserSummary(BaseModel):
     id: int = Field(..., description="The ID of the user.")
     username: str = Field(..., description="The username of the user.")
+    avatar_url: str | None = Field(None, description="The avatar's url of the user.")
+    count: int = Field(..., description="The opinions number of the user.")
+    average_ratings: float = Field(..., description="The average ratings of the user.")
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,20 +1,25 @@
 from datetime import date
-
+from databases.postgresql import get_session
 from fastapi import APIRouter, Depends, status, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.user_repository import UserRepository
-from app.schemas.carpooling_schema import CarpoolingCreate, CarpoolingRead, CarpoolingUpdate, CarpoolingStatusUpdate, CarpoolingReadNew
-from app.services.carpooling_service import CarpoolingService
 from app.repositories.carpooling_repository import CarpoolingRepository
-from databases.postgresql import get_session
-from app.services.transaction_service import TransactionService
+from app.repositories.user_repository import UserRepository
 from app.repositories.transaction_repository import TransactionRepository
+from app.repositories.opinion_repository import OpinionRepository
+from app.services.carpooling_service import CarpoolingService
+from app.services.transaction_service import TransactionService
+from app.schemas.carpooling_schema import (CarpoolingCreate,
+                                           CarpoolingRead,
+                                           CarpoolingUpdate,
+                                           CarpoolingStatusUpdate,
+                                           CarpoolingReadNew)
 
 router = APIRouter(prefix="/carpoolings", tags=["carpoolings"])
 
 def get_service_carpooling(db: AsyncSession = Depends(get_session)) -> CarpoolingService:
     return CarpoolingService(CarpoolingRepository(db),
                              UserRepository(db),
+                             OpinionRepository(db),
                              TransactionService(TransactionRepository(db),
                                                 CarpoolingRepository(db),
                                                 UserRepository(db)
@@ -132,7 +137,7 @@ async def update_carpooling(request: Request,
     user_id = request.state.user_id
     return await service.update_carpooling(carpooling_id, data, user_id)
 
-@router.patch("/{carpooling_id}/status", response_model=CarpoolingRead, status_code=status.HTTP_200_OK)
+@router.patch("/{carpooling_id}/status", response_model=CarpoolingReadNew, status_code=status.HTTP_200_OK)
 async def update_carpooling_status(request: Request,
                                    carpooling_id: int,
                                    data: CarpoolingStatusUpdate,

@@ -4,6 +4,7 @@ from databases.postgresql import get_session
 from app.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
 from app.repositories.role_repository import RoleRepository
+from app.repositories.opinion_repository import OpinionRepository
 from app.schemas.user_schema import UserCreate,UserRead, UserProfileUpdate, UserAccountUpdate, UserRoleUpdate
 from app.schemas.change_password_schema import ChangePasswordSchema
 from datetime import date
@@ -11,7 +12,7 @@ from datetime import date
 router = APIRouter(prefix="/users",tags=["users"])
 
 def get_service_user(db: AsyncSession = Depends(get_session)) -> UserService:
-    return UserService(UserRepository(db), RoleRepository(db))
+    return UserService(UserRepository(db), RoleRepository(db), OpinionRepository(db))
 
 @router.get("/",response_model=list[UserRead])
 async def list_users(service: UserService = Depends(get_service_user)):

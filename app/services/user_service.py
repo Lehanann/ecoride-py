@@ -10,6 +10,7 @@ from app.services.file_service import FileService
 from app.core.security.password_security import create_password_hash, verify_password
 from app.repositories.role_repository import RoleRepository
 from app.core.exceptions.data_exceptions import DataIntegrityError
+from app.repositories.opinion_repository import OpinionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,12 @@ class UserService:
     WRONG_OLD_PASSWORD = "The old password is incorrect"
     EXISTING_MAIL = "The email exists already! You can't use it."
 
-    def __init__(self, user_repository: UserRepository, role_repository: RoleRepository):
+    def __init__(
+            self,
+            user_repository: UserRepository,
+            role_repository: RoleRepository,
+            opinion_repository: OpinionRepository
+    ):
         """
         Initialize the user service with the user repository.
 
@@ -47,6 +53,7 @@ class UserService:
         """
         self.user_repository = user_repository
         self.role_repository = role_repository
+        self.opinion_repository = opinion_repository
 
     async def get_by_id(self, user_id: int) -> User | None:
         """

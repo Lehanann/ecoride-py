@@ -44,7 +44,8 @@ class CarRepository:
             select(Car)
             .options(
                 selectinload(Car.brand))
-            .where(Car.user_id == user_id)
+            .where(Car.user_id == user_id,
+                   Car.is_active.is_(True))
         )
         return list(result)
 
@@ -62,8 +63,17 @@ class CarRepository:
         self.db.add(car)
         return car
 
+    async def soft_delete(self, car_id: int) -> Car | None:
+        car = await self.get_by_id(car_id)
+        if car is None:
+            return None
+        car.is_active = False
+        self.db.add(car)
+        return car
+
+    """ 
     async def delete(self, car_id: int) -> Car | None:
-        """
+
         Deletes a car by its ID.
 
         Args:
@@ -71,9 +81,10 @@ class CarRepository:
 
         Returns:
             Car | None: The deleted car instance if found, otherwise None.
-        """
+
         car = await self.get_by_id(car_id)
         if car is None:
             return None
         await self.db.delete(car)
         return car
+    """

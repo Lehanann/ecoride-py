@@ -3,10 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.opinion_repository import OpinionRepository
 from app.services.reservation_service import ReservationService
 from app.schemas.reservation_schema import ReservationCreate, UserReservationResponse
 from databases.postgresql import get_session
-
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -14,7 +14,7 @@ def get_service_reservation( db: AsyncSession = Depends(get_session)) -> Reserva
     """
     Provide an instance of ReservationService with injected repositories.
     """
-    return ReservationService(ReservationRepository(db), CarpoolingRepository(db), UserRepository(db))
+    return ReservationService(ReservationRepository(db), CarpoolingRepository(db), UserRepository(db), OpinionRepository(db))
 
 
 @router.post("/", response_model=dict[str,str])

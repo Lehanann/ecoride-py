@@ -1,10 +1,11 @@
 import logging
 from sqlalchemy.exc import IntegrityError
 from app.core.exceptions.http_exceptions import bad_request, forbidden, not_found, conflict
-from datetime import date, datetime
+from datetime import date
 from app.models.tables.carpooling import Carpooling
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.opinion_repository import OpinionRepository
 from app.schemas.carpooling_schema import CarpoolingCreate, CarpoolingUpdate,CarpoolingStatusUpdate
 from app.utils.carpooling_status_enum import CarpoolingStatusEnum
 from app.services.transaction_service import TransactionService
@@ -27,6 +28,7 @@ class CarpoolingService:
     def __init__(self,
                  carpooling_repository: CarpoolingRepository,
                  user_repository: UserRepository,
+                 opinion_repository: OpinionRepository,
                  transaction_service: TransactionService
                  ) -> None:
         """
@@ -37,6 +39,7 @@ class CarpoolingService:
             user_repository (UserRepository): The repository of the user.
             transaction_service (TransactionService): The service of the transaction.
         """
+        self.opinion_repository = opinion_repository
         self.carpooling_repository = carpooling_repository
         self.user_repository = user_repository
         self.transaction_service = transaction_service
@@ -104,7 +107,10 @@ class CarpoolingService:
         carpoolings = await self.carpooling_repository.get_all()
 
         for carpooling in carpoolings:
+            count, average = await self.opinion_repository.get_rating_stats(carpooling.car.user_id)
             if carpooling.status == CarpoolingStatusEnum.published and carpooling.departure_date == date.today():
+                carpooling.car.user.count = count
+                carpooling.car.user.average_ratings = average
                 carpooling_filtered.append(carpooling)
 
         return carpooling_filtered
@@ -113,11 +119,18 @@ class CarpoolingService:
         carpoolings = await self.carpooling_repository.search_carpoolings(departure_location, end_location)
 
         if departure_date is None:
+            for carpooling in carpoolings:
+                count, average = await self.opinion_repository.get_rating_stats(carpooling.car.user.id)
+                carpooling.car.user.count = count
+                carpooling.car.user.average_ratings = average
             return carpoolings
 
         carpooling_filtered = []
 
         for carpooling in carpoolings:
+            count, average = await self.opinion_repository.get_rating_stats(carpooling.car.user.id)
+            carpooling.car.user.count = count
+            carpooling.car.user.average_ratings = average
             if carpooling.departure_date >= departure_date:
                 carpooling_filtered.append(carpooling)
 
@@ -133,7 +146,13 @@ class CarpoolingService:
                Returns:
                    list[Carpooling]: List of carpooling associated with the user.
                """
-        return await self.carpooling_repository.get_all_carpoolings_by_user(user_id)
+        carpoolings = await self.carpooling_repository.get_all_carpoolings_by_user(user_id)
+
+        for carpooling in carpoolings:
+            count, average = await self.opinion_repository.get_rating_stats(carpooling.car.user.id)
+            carpooling.car.user.count = count
+            carpooling.car.user.average_ratings = average
+        return carpoolings
 
     async def create_carpooling(self, carpooling: CarpoolingCreate, user_id: int) -> Carpooling:
         """

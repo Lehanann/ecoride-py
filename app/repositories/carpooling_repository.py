@@ -51,7 +51,9 @@ class CarpoolingRepository:
         Returns:
             list[Carpooling]: The list of all carpooling instances.
         """
-        return list(await self.db.scalars(select(Carpooling)))
+        return list(await self.db.scalars(select(Carpooling)
+                                          .options( selectinload(Carpooling.car).selectinload(Car.brand),
+                                                    selectinload(Carpooling.car).selectinload(Car.user),)))
 
     async def search_carpoolings(
         self,

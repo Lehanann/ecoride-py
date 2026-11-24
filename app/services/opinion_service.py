@@ -125,6 +125,9 @@ class OpinionService:
         try:
             opinion = await self.opinion_repository.create(opinion_data)
             await self.opinion_repository.db.commit()
+            await self.opinion_repository.db.refresh(opinion)
+            print(opinion.id)
+            print(opinion.author)
             return opinion
         except IntegrityError:
             await self.opinion_repository.db.rollback()

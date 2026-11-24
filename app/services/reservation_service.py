@@ -5,7 +5,8 @@ from app.models.tables.reservation import Reservation
 from app.repositories.carpooling_repository import CarpoolingRepository
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.reservation_schema import ReservationCreate
+from app.repositories.opinion_repository import OpinionRepository
+from app.schemas.reservation_schema import ReservationCreate, UserReservationResponse
 from app.utils.carpooling_status_enum import CarpoolingStatusEnum
 from datetime import date
 
@@ -26,7 +27,9 @@ class ReservationService:
     def __init__(self,
                  reservation_repository: ReservationRepository,
                  carpooling_repository: CarpoolingRepository,
-                 user_repository: UserRepository) -> None:
+                 user_repository: UserRepository,
+                 opinion_repository: OpinionRepository
+                 ) -> None:
         """
         Initialize the reservation service.
 
@@ -38,6 +41,7 @@ class ReservationService:
         self.reservation_repository = reservation_repository
         self.carpooling_repository = carpooling_repository
         self.user_repository = user_repository
+        self.opinion_repository = opinion_repository
 
     async def reserve(self, user_id: int, reservation_data: ReservationCreate) -> Reservation :
         """
@@ -187,4 +191,17 @@ class ReservationService:
         if user is None:
             raise not_found(detail=self.USER_NOT_FOUND)
 
-        return await self.reservation_repository.get_user_reservations(user_id)
+        reservations = await self.reservation_repository.get_user_reservations(user_id)
+
+        all_reservations = []
+        for reservation in reservations:
+            has_opinion = await self.opinion_repository.has_opinion(user.id, reservation.carpooling_id)
+            print("has_opinion", has_opinion)
+            all_reservations.append(
+                UserReservationResponse(
+                    carpooling=reservation.carpooling,
+                    has_opinion=has_opinion,
+            ))
+
+        return all_reservations
+

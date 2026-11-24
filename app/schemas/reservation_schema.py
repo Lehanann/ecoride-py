@@ -50,5 +50,6 @@ class CarpoolingSummary(BaseModel):
 
 class UserReservationResponse(BaseModel):
     carpooling: CarpoolingSummary
+    has_opinion: bool = Field(False, description="Whether the reservation has opinion.")
 
     model_config = ConfigDict(from_attributes=True)
