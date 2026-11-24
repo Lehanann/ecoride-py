@@ -160,6 +160,17 @@ DATABASE_URL=postgresql+asyncpg://user:password@localhost/ecoride
 JWT_SECRET_KEY=your-secret-key
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+#path storage
+STORAGE=storage
+
+#database Postgresql
+PG_USR=user-ecoride
+PG_PWD=password-user-ecoride
+PG_HOST=127.0.0.1
+PG_PORT=5432
+PG_DB=ecoride
+PG_SCHEMA=ecoride
 ```
 
 Adapter les valeurs selon votre environnement.
